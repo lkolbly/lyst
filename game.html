@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html style="margin:0;padding:0" manifest="manifest">
+   <head style="margin:0;padding:0" profile="http://www.w3.org/2005/10/profile">
+     <link rel="stylesheet" type="text/css" href="/css/reset.css"/>
+     <link rel="stylesheet" type="text/css" href="/css/jquery-ui.css"/>
+     <link rel="stylesheet" type="text/css" href="/css/main.css"/>
+     <script src="/js/jquery.min.js"></script>
+     <script src="/js/jquery-ui.min.js"></script>
+     <script src="/js/mustache.js"></script>
+     <script src="/js/autobahn.js"></script>
+     <script src="/js/md5-min.js"></script>
+     <script src="/js/enscroll-0.3.0.min.js"></script>
+     <script src="/js/html2canvas.js"></script>
+     <script src="/js/move.js"></script>
+     <script src="cdns" type="text/javascript"></script>
+     <script src="main.js"></script>
+     <link rel="icon" type="image/x-icon" href="/favicon.ico">
+     <title>Lyst</title>
+   </head>
+   <body style="margin:0;padding:0;overflow:hidden;">
+     <div id="error-banner" style="padding-left:5px;background-color:red"></div>
+     <div id="good-banner" style="padding-left:5px;background-color:green"></div>
+     <div id="login-form-div">
+       <form accept-charset="utf-8" id="login-form">
+	   <span>Name</span>
+	   <input type="text" name="username" id="login-username" class="text ui-widget-content ui-corner-all" style="width:100px"/><br/>
+	   <span>Password</span>
+	   <input type="password" name="pw" id="login-password" class="text ui-widget-content ui-corner-all" style="width:100px"/><br/>
+	   <input id="login-form-submit" type="submit" name="submit" value="Login"/>
+       </form>
+     </div>
+     <div id="register-form-div">
+       <form accept-charset="utf-8" id="register-form">
+	 <span>Full Name</span>
+	 <input type="text" name="fullname" id="register-fullname" class="text ui-widget-content ui-corner-all" style="width:100px"/><br/>
+	 <span>Email Address</span>
+	 <input type="text" name="fullname" id="register-email" class="text ui-widget-content ui-corner-all" style="width:100px"/><br/>
+	 <span>Username</span>
+	 <input type="text" name="username" id="register-username" class="text ui-widget-content ui-corner-all" style="width:100px"/><br/>
+	 <span>Password</span>
+	 <input type="password" name="pw" id="register-password" class="text ui-widget-content ui-corner-all" style="width:100px"/><br/>
+	 <span>Confirm Password</span>
+	 <input type="password" name="pw" id="register-password-confirm" class="text ui-widget-content ui-corner-all" style="width:100px"/>
+	 <input id="register-user" type="submit" name="submit" value="Create User"/><br/>
+	 [<small>See our <a target="window" href="http://pillow.rscheme.org/privacy.php">Privacy Policy</a></small>]
+       </form>
+     </div>
+   </body>
+ </html>

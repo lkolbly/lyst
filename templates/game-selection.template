@@ -1,0 +1,6 @@
+<table id="login-form-div" style="width:500px">
+{{#games}}
+<tr style="display:table;color:red;border:1px solid blue"><td style="width:250px">{{desc}}</td><td style="width:125px"><button onclick="chooseGame('{{id}}');">Play</button></td></tr>
+{{/games}}
+<tr><td><button onclick="signout();">Sign Out</button></td></tr>
+</table>

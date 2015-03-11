@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<world xmlns:cond="http://pillow.rscheme.org/lyst/conditional-xml" xmlns:api="http://pillow.rscheme.org/lyst/api-xml">
+	<!-- This world is intended to provide a comprehensive browser & server test world -->
+	<!-- It is meant more to test the browser than to test the server -->
+	<!-- Let's start by defining a few hotspot templates -->
+	<hotspot-template id="yes-button" cursor="left" geometry="xyxy:0.1,0.7,0.2,0.8"/>
+	<hotspot-template id="no-button" cursor="right" geometry="xywh:0.1,0.7,0.1,0.1"/>
+	<hotspot-template id="move-forward" cursor="fwd" geometry="0.25,0.25,0.5,0.5"/>
+
+	<!-- Let's define the most basic slide possible -->
+	<slide id="credits-1">
+		<image src="start.jpg"/>
+		<hotspot action="move:toggle-test" template="move-forward"/>
+	</slide>
+
+	<!-- Let's define the most basic slide possible -->
+	<slide id="start">
+		<image src="start.jpg"/>
+		<hotspot action="move:toggle-test" template="move-forward"/>
+	</slide>
+
+	<!-- Let's define a slide which has a state toggle between two states -->
+	<state id="test-state" type="boolean" initial="false"/>
+	<slide id="toggle-test">
+		<cond:if expr="test-state==true">
+			<cond:then><image src="toggle-true.jpg"/></cond:then>
+			<cond:else><image src="toggle-false.jpg"/></cond:else>
+		</cond:if>
+
+		<hotspot action="state:toggle:test-state" geometry="xywh:0.25,0.25,0.5,0.5"/>
+		<hotspot action="link:sound-test" cursor="fwd" geometry="xyxy:0.75,0.0,1.0,1.0"/>
+	</slide>
+
+	<!-- Let's test sound playback -->
+	<state id="sound-capable" type="boolean" initial="false"/>
+	<slide id="sound-test">
+		<image src="sound.jpg"/>
+		<sound src="sound.ogg"/>
+
+		<hotspot action="state:set:sound-capable:true&amp;move:video-test" template="yes-button"/>
+		<hotspot action="state:set:sound-capable:false&amp;move:video-test" template="no-button"/>
+	</slide>
+
+	<!-- Let's test video playback -->
+	<state id="video-capable" type="boolean" initial="false"/>
+	<slide id="video-test">
+		<image src="video.jpg"/>
+		<video src="video.webm"/>
+	</slide>
+</world>

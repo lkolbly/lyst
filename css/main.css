@@ -1,0 +1,140 @@
+.grab-cursor {
+    cursor: url("/cursors/grab.cur"), default;
+}
+
+#items-drawer-handle {
+    position: fixed;
+    width: 30px;
+    height: 30px;
+    /*background-color: black;*/
+    margin: 0; padding: 0;
+    margin-left: 10px;
+    margin-right: 10px;
+    z-index:1000;
+    /*border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border: red 1px solid;
+    border-left: none;*/
+    /*opacity: 0.0;
+    background-opacity: 0.0;*/
+}
+
+#items-drawer-container div {
+    -webkit-transition: all 0.5s ease;
+    -moz-transition: all 0.5s ease;
+    -o-transition: all 0.5s ease;
+    -ms-transition: all 0.5s ease;
+    transition: all 0.5s ease;
+    /*opacity: 1.0;*/
+}
+
+#items {
+    opacity: 1.0;
+    position: fixed;
+    display: block;
+    margin-top: -500px;
+    background-color: black;
+    z-index: 1000;
+    width: 130px;
+    height: 50%;
+    overflow-x:hidden;
+    overflow-y:scroll;
+    padding: 10px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border: red 1px solid;
+    /*border-left: none;*/
+    border-top: none;
+    cursor: url("/cursors/fwd.cur"), default;
+}
+
+#items-drawer-handle:hover #items {
+    margin-top: 0px;
+}
+
+#items-drawer-container:hover .track3 {
+    margin-left: 0px;
+}
+
+#items-drawer-container .track3 {
+    margin-left: -250px;
+}
+
+.track3 {
+    width: 10px;
+    background: rgba(0.1, 0.1, 0.1, 0);
+    margin-right: 2px;
+    border-radius: 10px;
+    -webkit-transition: background 250ms linear;
+    -moz-transition: background 250ms linear;
+    -o-transition: background 250ms linear;
+    -ms-transition: background 250ms linear;
+    transition: background 250ms linear;
+}
+
+.track3:hover,
+.track3.dragging {
+    background: #d9d9d9; /* Browsers without rgba support */
+    background: rgba(0.1, 0.1, 0.1, 0.15);
+}
+
+.handle3 {
+    width: 7px;
+    right: 0;
+    background: #999;
+    background: rgba(0.1, 0.1, 0.1, 0.4);
+    border-radius: 7px;
+    -webkit-transition: width 250ms;
+    -moz-transition: width 250ms;
+    -o-transition: width 250ms;
+    -ms-transition: width 250ms;
+    transition: width 250ms;
+}
+
+.track3:hover .handle3,
+.track3.dragging .handle3 {
+    width: 10px;
+}
+
+::-moz-scrollbar {
+    width: 12px;
+}
+ 
+::-moz-scrollbar-track {
+    -moz-box-shadow: inset 0 0 6px rgba(0,0,0,0.3); 
+    border-radius: 10px;
+}
+ 
+::-moz-scrollbar-thumb {
+    border-radius: 10px;
+    -moz-box-shadow: inset 0 0 6px rgba(1,1,1,0.5); 
+}
+
+body {
+    background-color: black;
+    cursor: url("/cursors/default.cur"), default;
+}
+
+#login-form-div {
+    position:relative;
+    width:270px;
+    margin-left:auto;
+    margin-right:auto;
+    margin-top:10%;
+    color: red;
+}
+
+#login-form-submit {
+    -moz-corner-radius:10px;
+}
+
+#register-form-div {
+    position:relative;
+    width:270px;
+    margin-left:auto;
+    margin-right:auto;
+    margin-top:3%;
+    color: red;
+}

@@ -1,0 +1,1 @@
+<img id='{{id}}' class="geometry-adjustable" src="/pictures/{{src}}" style='z-index:{{i}};margin:0;padding:0;margin-left:{{x}}%;margin-top:{{y}}%;position:absolute;width:{{w}}%;height:{{h}}%;cursor:url("cursors/default.cur"), default;' geometry="{{x}},{{y}},{{w}}x{{h}}"/>
