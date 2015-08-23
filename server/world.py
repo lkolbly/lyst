@@ -16,7 +16,7 @@ class LystHotspot:
 
     def toJSON(self):
         o = {"width": self.width*100, "height": self.height*100, "x": self.left*100, "y":self.top*100, "id": self.id, "cursor": self.cursor}
-        print o
+        print(o)
         return o
 
     def fromTemplate(self, t):
@@ -25,7 +25,7 @@ class LystHotspot:
             self.cursor = "grab"
         geo = t.getAttribute("geometry")
         geo = geo.split(",")
-        print geo
+        print(geo)
         self.left = float(geo[0])
         self.top = float(geo[1])
         right = float(geo[2])
@@ -35,10 +35,10 @@ class LystHotspot:
 
     def loadFromElement(self, h, h_id):
         template_id = h.getAttribute("template")
-        print "template_id = %s"%template_id
+        print("template_id = %s"%template_id)
         if len(template_id)>0 and template_id in lyst_Hotspot_Templates:
             t = lyst_Hotspot_Templates[template_id]
-            print "Loading from %s"%t
+            print("Loading from %s"%t)
             self.cursor = t.cursor
             self.left = t.left
             self.top = t.top
@@ -58,7 +58,7 @@ class LystHotspot:
         self.dest = action[5:]
         if len(geo) > 0:
             geo = geo.split(",")
-            print geo
+            print(geo)
             self.left = float(geo[0])
             self.top = float(geo[1])
             right = float(geo[2])
@@ -156,6 +156,6 @@ class LystWorld:
             world.appendChild(e)
             #e.setAttribute("id", s.id)
 
-        print dom.toprettyxml()
+        print(dom.toprettyxml())
         open(filename, "w").write(dom.toprettyxml())
         pass

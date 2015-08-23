@@ -1,4 +1,4 @@
-<?xml version="1.0" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <world xmlns:cond="http://pillow.rscheme.org/lyst/conditional-xml" xmlns:api="http://pillow.rscheme.org/lyst/api-xml">
 	<!-- This world is intended to provide a comprehensive browser & server test world -->
 	<!-- It is meant more to test the browser than to test the server -->
@@ -6,17 +6,120 @@
 	<hotspot-template id="yes-button" cursor="left" geometry="xyxy:0.1,0.7,0.2,0.8"/>
 	<hotspot-template id="no-button" cursor="right" geometry="xywh:0.1,0.7,0.1,0.1"/>
 	<hotspot-template id="move-forward" cursor="fwd" geometry="0.25,0.25,0.5,0.5"/>
+	<hotspot-template id="next-button" cursor="fwd" geometry="xyxy:0.2531,0.552,0.6984,0.817"/>
+	<hotspot-template id="left" cursor="left" geometry="xyxy:0.0,0.0,0.25,1.0"/>
+	<hotspot-template id="right" cursor="right" geometry="xyxy:0.75,0.0,1.0,1.0"/>
 
 	<!-- Let's define the most basic slide possible -->
 	<slide id="credits-1">
 		<image src="start.jpg"/>
-		<hotspot action="move:toggle-test" template="move-forward"/>
+		<hotspot action="move:pre-video" template="next-button"/>
 	</slide>
 
-	<!-- Let's define the most basic slide possible -->
-	<slide id="start">
-		<image src="start.jpg"/>
-		<hotspot action="move:toggle-test" template="move-forward"/>
+	<slide id="pre-video">
+	  <image src="pre-video.jpg"/>
+	  <hotspot action="link:intro-video" template="next-button"/>
+	</slide>
+
+	<slide id="intro-video">
+	  <!-- Note that we still have to include an image. This would be the loading image. -->
+	  <image src="pre-video.jpg"/>
+
+	  <video src="intro.webm"/>
+	  <hotspot action="link:post-video" cursor="fwd" geometry="xyxy:0.0,0.0,1.0,1.0"/>
+	</slide>
+
+	<slide id="post-video">
+	  <image src="post-video.jpg"/>
+	  <hotspot action="link:room-north" template="next-button"/>
+	</slide>
+
+	<slide id="room-north">
+	  <image src="room-north.png"/>
+	  <!-- Notice that move and link are technically the same. -->
+	  <hotspot action="move:room-east" template="right"/>
+	  <hotspot action="move:room-west" template="left"/>
+	</slide>
+
+	<slide id="room-east">
+	  <image src="room-east.png"/>
+
+	  <hotspot action="move:room-north" template="left"/>
+	  <hotspot action="move:bookshelf" template="right"/>
+	</slide>
+
+	<slide id="bookshelf">
+	  <image src="bookshelf.png"/>
+
+	  <hotspot action="take:book" template="move-forward"/>
+	  <hotspot action="move:room-west" template="right"/>
+	  <hotspot action="move:room-east" template="left"/>
+	</slide>
+
+	<item id="book" default-location="bookshelf">
+	  <thumbnail src="book.png"/>
+	  <fullsize src="book.png"/>
+	</item>
+
+	<!-- These are the states of the switches -->
+	<state id="switch-1" type="boolean" initial="false"/>
+	<state id="switch-2" type="boolean" initial="false"/>
+	<state id="switch-3" type="boolean" initial="false"/>
+
+	<slide id="room-west">
+	  <image src="switches-base.png"/>
+
+	  <cond:if expr="switch-1==true">
+	    <cond:then><subimage src="left-switch-up.png" pos="xywh:0.2225,0.20833,0.14052,0.5208"/></cond:then>
+	  </cond:if>
+
+	  <cond:if expr="switch-2==true">
+	    <cond:then><subimage src="middle-switch-up.png" pos="xywh:0.43326,0.22,0.14052,0.5208"/></cond:then>
+	  </cond:if>
+
+	  <cond:if expr="switch-3==true">
+	    <cond:then><subimage src="right-switch-up.png" pos="xywh:0.63819,0.215,0.14052,0.52"/></cond:then>
+	  </cond:if>
+
+	  <cond:if expr="switch-1==true">
+	    <cond:then>
+	      <cond:if expr="switch-2==false">
+		<cond:then>
+		  <cond:if expr="switch-3==true">
+		    <cond:then>
+		      <subimage src="floor-open.png" pos="xywh:0.3583,0.86,0.24824,0.13542"/>
+		      <hotspot action="move:ladder-top" geometry="xywh:0.3583,0.86458,0.24824,0.13542"/>
+		    </cond:then>
+		  </cond:if>
+		</cond:then>
+	      </cond:if>
+	    </cond:then>
+	  </cond:if>
+
+	  <hotspot action="state:toggle:switch-1" geometry="xywh:0.2225,0.20833,0.14052,0.5208"/>
+	  <hotspot action="state:toggle:switch-2" geometry="xywh:0.43326,0.25,0.14052,0.5208"/>
+	  <hotspot action="state:toggle:switch-3" geometry="xywh:0.63819,0.25,0.14052,0.5208"/>
+
+	  <hotspot action="move:bookshelf" template="left"/>
+	  <hotspot action="move:room-north" template="right"/>
+	</slide>
+
+	<slide id="ladder-top">
+	  <image src="ladder-top.png"/>
+	  <hotspot action="move:ladder-middle" template="fwd"/>
+	  <hotspot action="move:room-west" cursor="down" geometry="xyxy:0.0,0.75,1.0,1.0"/>
+	</slide>
+
+	<slide id="ladder-middle">
+	  <image src="ladder-middle.png"/>
+	  <hotspot action="move:game-won" template="fwd"/>
+	  <hotspot action="move:ladder-top" template="left"/>
+	  <hotspot action="move:ladder-top" template="right"/>
+	</slide>
+
+	<!-- The last slide in the game.-->
+	<slide id="game-won">
+	  <image src="game-won.png"/>
 	</slide>
 
 	<!-- Let's define a slide which has a state toggle between two states -->

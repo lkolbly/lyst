@@ -250,7 +250,8 @@ function TemplateStore() {
     this.templates = {};
     this.addTemplate = function (tid, uri) {
 	templates = this.templates;
-	$.ajax({url: uri}).done(function (msg) {
+	$.ajax({url: uri, dataType: 'text'}).done(function (msg) {
+	    //console.log(msg);
 	    templates[hex_md5(tid)] = msg;
 	});
     };
@@ -258,6 +259,7 @@ function TemplateStore() {
 	state["CDNify"] = function() { return URLToCDN; };
 	state["Resify"] = function() { return resify; };
 	t = this.templates[hex_md5(tid)];
+	//console.log(t);
 	return Mustache.to_html(t, state);
     };
 }
@@ -318,7 +320,7 @@ function openItem(item_id) {
 	$("#item-overlay").dialog({ modal: true });
     } else if (full.type === "slide") {
 	// Request that this slide be rendered
-	ws_Sess.call("http://example.com/simple/calc#renderDynamicSlide", full.src).then(
+	ws_Sess.call("renderDynamicSlide", [full.src],
 	    function (slide) {
 		console.log("Rendering item slide "+slide);
 		$("body").append("<div id='item-overlay' style='margin:0;padding:0;width:60%;height:60%' title='Item "+item_id+"'></div>");
@@ -564,7 +566,7 @@ function renderSlideTo(slide, dest_div, has_frills) {
     }
     $(".hotspot").unbind("click");
     $(".hotspot").click(function () {
-	ws_Sess.call("http://example.com/simple/calc#slideClick", this.id);
+	ws_Sess.call("slideClick", [this.id], function(){});
     });
 
 		if (red_Overlay_Enabled) {
@@ -604,8 +606,8 @@ function loadSlide(slide) {
 	cursor: "url('cursors/grab.cur'), default",
 	cursorAt: {top: 0, left: 0},
 	stop: function(ev, ui) {
-	    ws_Sess.call("http://example.com/simple/calc#itemDrag",
-			 {id: this.id, pos: {top: ui.position.top/$(window).height(), left: ui.position.left/$(window).width()}});
+	    ws_Sess.call("itemDrag",
+			 [{id: this.id, pos: {top: ui.position.top/$(window).height(), left: ui.position.left/$(window).width()}}]);
 	    console.log(ui.position.top);
 	    $(ui).remove();
 	}
@@ -667,7 +669,7 @@ function loadSlide(slide) {
 
     // And finally, the save game button.
     $("#save-game-button").button().click(function() {
-	ws_Sess.call("http://example.com/simple/calc#saveGame").then(function (result) {
+	ws_Sess.call("saveGame", [], function (result) {
 	    // Create a dialog to tell the user it worked.
 	    $("body").append("<div id='dialog-game-saved'><p>The game was saved!</p></div>");
 	    $("#dialog-game-saved").dialog({
@@ -764,12 +766,12 @@ var connection_Error_Screen = new connectionErrorScreen();
 var is_first_load = true;
 
 function chooseGame(game_id) {
-    ws_Sess.call("http://example.com/simple/calc#chooseGame", game_id).then(
+    ws_Sess.call("chooseGame", [game_id],
 	function(uid) {
 	    setCookie("lyst_user_uid", uid);
 
 	    // And now we wait
-	    ws_Sess.call("http://example.com/simple/calc#startGame", uid);
+	    ws_Sess.call("startGame", [uid]);
 	});
 };
 
@@ -819,62 +821,15 @@ window.onload = function() {
       wsuri = "ws://" + window.location.hostname + ":9000";
    }
 
-   // connect to WAMP server
-   ab.connect(wsuri,
- 
-      // WAMP session was established
-      function (session) {
- 
-          ws_Sess = session;
- 
-          console.log("Connected to " + wsuri);
-	  //console.log(ws_Sess);
-	  connection_Error_Screen.stopError();
-	  //$("#login-form").dialog("open");
-          //test();
-
-
-
-    // If we have a login cookie, let's try to login with that.
-    var user_cookie = getCookie("lyst-user");
-    var auth_cookie = getCookie("lyst-auth-cookie");
-    if (user_cookie === null || auth_cookie === null) {
-	// Stay the course
-    } else {
-	// Try to authenticate
-	ws_Sess.call("http://example.com/simple/calc#userLoginCookie", user_cookie, auth_cookie).then(
-	    function (games) {
-		console.log("auth cookies: "+user_cookie+", "+auth_cookie);
-		if ("error" in games) {
-		    // Simply don't do anything.
-		} else {
-		    // Save the authentication cookies
-		    setCookie("lyst-user", games["username"]);
-		    setCookie("lyst-auth-cookie", games["cookie"]);
-
-		    // Create a table to hold the different saved games
-		    $("body").html(template_Store.renderTemplate("game_selection", games));
-		}
-	    });
-    }
-      },
- 
-      // WAMP session is gone
-      function (code, reason) {
- 
-          ws_Sess = null;
-	  console.log("Disconnected because of "+reason);
-	  connection_Error_Screen.startError();
-         if (code == ab.CONNECTION_UNSUPPORTED) {
-            window.location = "http://autobahn.ws/unsupportedbrowser";
-         } else {
-            console.log(reason);
-         }
-      },
-
-      {
-        unsolicited_cb: function (o) {
-           //console.log(o + " unsolicited by");
+    //var ws = new autobahn.Connection({url: wsuri, realm: 'lyst'});
+    var ws = new WebSocket(wsuri);
+    ws.onmessage = function(event) {
+	console.log(event.data);
+	var o = JSON.parse(event.data);
+	if (o._cb_id !== undefined) {
+	    ws_Sess._cb_ids[o._cb_id](o.result);
+	} else {
+            console.log(o + " unsolicited by, action = " + o.action);
 	   //console.log(ws_Sess);
            if (o.action === "loadSlide") {
                loadSlide(o.slide);
@@ -887,9 +842,61 @@ window.onload = function() {
 	   } else if (o.action === "setCDNGameName") {
 	       game_CDN_Name = o.name;
            }
-        }
-      }
-   );
+	}
+    };
+    ws.onopen = function(event) {
+          ws_Sess = {
+	      _cb_cnt: 0,
+	      _cb_ids: {},
+	      call: function(fn, args, cb) {
+		  console.log("Calling "+fn);
+		  if (cb !== undefined) {
+		      var callback_id = this._cb_cnt++; // The ID they should callback at
+		      this._cb_ids[callback_id] = cb;
+		      ws.send(JSON.stringify({action: fn, callback_id: callback_id, args: args}));
+		  } else {
+		      ws.send(JSON.stringify({action: fn, args: args}));
+		  }
+	      }
+	  };
+ 
+          console.log("Connected to " + wsuri);
+	  //console.log(ws_Sess);
+	  connection_Error_Screen.stopError();
+	  //$("#login-form").dialog("open");
+          //test();
+
+
+
+	  // If we have a login cookie, let's try to login with that.
+	  var user_cookie = getCookie("lyst-user");
+	  var auth_cookie = getCookie("lyst-auth-cookie");
+	  if (user_cookie === null || auth_cookie === null) {
+	      // Stay the course
+	  } else {
+	      // Try to authenticate
+	      ws_Sess.call("userLoginCookie", [user_cookie, auth_cookie],
+		  function (games) {
+		      console.log("auth cookies: "+user_cookie+", "+auth_cookie);
+		      console.log(games);
+		      if ("error" in games) {
+			  // Simply don't do anything.
+		      } else {
+			  // Save the authentication cookies
+			  setCookie("lyst-user", games["username"]);
+			  setCookie("lyst-auth-cookie", games["cookie"]);
+
+			  // Create a table to hold the different saved games
+			  $("body").html(template_Store.renderTemplate("game_selection", games));
+		      }
+		  });
+	  }
+    };
+    ws.onclose = function(event) {
+	console.log(event);
+          ws_Sess = null;
+	  connection_Error_Screen.startError();
+    };
 
    // Build the login form
 
@@ -901,7 +908,7 @@ window.onload = function() {
 		   "fullname": $("#register-fullname").val(),
 		   "password": $("#register-password").val(),
 		   "email": $("#register-email").val()};
-	ws_Sess.call("http://example.com/simple/calc#registerUser", obj).then(
+	ws_Sess.call("registerUser", [obj],
 	    function (error) {
 		if (error === 1) {
 		    $("#error-banner").html("<p>There was an error creating the user.</p>");
@@ -926,7 +933,7 @@ window.onload = function() {
 
     $("#login-form").submit(function() {
 	// Kick off the WebSocket login stuff
-	ws_Sess.call("http://example.com/simple/calc#userLogin", $("#login-username").val(), $("#login-password").val()).then(
+	ws_Sess.call("userLogin", [$("#login-username").val(), $("#login-password").val()],
 	    function (games) {
 		//$("#login-form").dialog("close");
 		//chooseGame(games[0].id);

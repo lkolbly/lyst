@@ -4,61 +4,61 @@ import re, string
 import random, hashlib
 import json
 import world_api
+import asyncio
 
 # Returns xywh always
 def parseGeometryString(s):
         match = re.match(r"(?:xywh:)?([\d\.]+),([\d\.]+),([\d\.]+),([\d\.]+)", s)
         if match:
-            x = float(match.groups()[0])
-            y = float(match.groups()[1])
-            w = float(match.groups()[2])
-            h = float(match.groups()[3])
-            return (x,y,w,h)
+                x = float(match.groups()[0])
+                y = float(match.groups()[1])
+                w = float(match.groups()[2])
+                h = float(match.groups()[3])
+                return (x,y,w,h)
 
         match = re.match(r"xyxy:([\d\.]+),([\d\.]+),([\d\.]+),([\d\.]+)", s)
         if match:
-            x1 = float(match.groups()[0])
-            y1 = float(match.groups()[1])
-            x2 = float(match.groups()[2])
-            y2 = float(match.groups()[3])
-            return (x1,y1,x2-x1,y2-y1)
-        return (0,0,0,-1)
+                x1 = float(match.groups()[0])
+                y1 = float(match.groups()[1])
+                x2 = float(match.groups()[2])
+                y2 = float(match.groups()[3])
+                return (x1,y1,x2-x1,y2-y1)
 
 class DynamicScreen:
-    def __init__(self, elem=None):
-        self.elem = None
-        self.slide = None
-        if elem:
-            self.fromDOM(elem)
+        def __init__(self, elem=None):
+                self.elem = None
+                self.slide = None
+                if elem:
+                        self.fromDOM(elem)
 
-    def render(self, state):
-        ds = RenderSlide()
-        self.slide.logic.render(ds, state)
-        return ds
+        def render(self, state):
+                ds = RenderSlide()
+                self.slide.logic.render(ds, state)
+                return ds
 
-    def fromDOM(self, elem):
-        self.elem = elem
+        def fromDOM(self, elem):
+                self.elem = elem
 
-        # Create a slide based on the <content> tag.
-        self.slide = Slide()
-        self.slide.fromDOM(elem.getElementsByTagName("content")[0])
+                # Create a slide based on the <content> tag.
+                self.slide = Slide()
+                self.slide.fromDOM(elem.getElementsByTagName("content")[0])
 
-    def __getstate__(self):
-        return {"slide": self.slide}
+        def __getstate__(self):
+                return {"slide": self.slide}
 
-    def __setstate__(self, state):
-        self.__init__()
-	self.slide = state["slide"]
+        def __setstate__(self, state):
+            self.__init__()
+            self.slide = state["slide"]
 
 class DynamicScreenRef:
     def __init__(self, elem=None):
-        self.elem = elem
+                self.elem = elem
 
     def s_to_pts(self, s):
-        pts = []
-        for match in re.finditer(r"\(([\d\-\.]*),([\d\-\.]*)\)", s):
-            pts.append((float(match.groups()[0]),float(match.groups()[1]), 1.0))
-        return pts
+                pts = []
+                for match in re.finditer(r"\(([\d\-\.]*),([\d\-\.]*)\)", s):
+                        pts.append((float(match.groups()[0]),float(match.groups()[1]), 1.0))
+                return pts
 
     def getmap(self):
         map_elem = self.elem.getElementsByTagName("map")[0]
@@ -74,14 +74,14 @@ class DynamicScreenRef:
             values = json.loads(map_elem.getAttribute("values"))
             return {"type": "2d", "values": values}
         else:
-            print "Unknown DynamicScreenRef map type '%s'"%mtype
+            print("Unknown DynamicScreenRef map type '%s'"%mtype)
             return {"type": "unknown"}
         return {"type": "linear", "values": values}
 
     def render(self, render_slide, state):
         dynscr = state["__lyst"]["dynamic_screens"].get(self.elem.getAttribute("id"), None)
         if not dynscr:
-            print "WARNING: No dynamic screen '%s'"%self.elem.getAttribute("id")
+            print("WARNING: No dynamic screen '%s'"%self.elem.getAttribute("id"))
             return
         s = dynscr.render(state)
         render_slide.dynamic_screens.append({"content": s, "map": self.getmap()})
@@ -127,17 +127,17 @@ class Hotspot:
     def fromAPI(self, hs):
         self.is_from_api = True
         self.api = hs
-        self.id = hashlib.md5(str(random.randint(0,1000000))).hexdigest()
+        self.id = hashlib.md5(str(random.randint(0,1000000)).encode('utf8')).hexdigest()
         self.api_callbacks = hs.api_callbacks
         self.options = hs.options
         pass
 
     def fromDOM(self, elem):
         self.elem = elem
-        self.id = hashlib.md5(str(random.randint(0,1000000))).hexdigest()#elem.getAttribute("id")
-	if self.elem.getAttribute("dragMethod"):
+        self.id = hashlib.md5(str(random.randint(0,1000000)).encode('utf8')).hexdigest()#elem.getAttribute("id")
+        if self.elem.getAttribute("dragMethod"):
             self.setAPICall(self.elem.getAttribute("dragMethod"), {}, on="itemDragged")
-	if self.elem.getAttribute("clickMethod"):
+        if self.elem.getAttribute("clickMethod"):
             self.setAPICall(self.elem.getAttribute("clickMethod"), {}, on="hotspotClicked")
 
     def getAction(self):
@@ -188,7 +188,7 @@ class Hotspot:
 
         x,y,w,h = self.parseGeometryString(geo_str)
         if x == 0 and y == 0 and w == 0 and h == -1:
-            print "Got a geo_str: %s"%geo_str
+            print("Got a geo_str: %s"%geo_str)
         if not cursor:
             cursor = "grab"
         return {"width": w*100, "height": h*100, "x": x*100, "y": y*100, "id": self.id, "w": int(w*100), "h": int(h*100), "cursor": cursor}
@@ -198,7 +198,7 @@ class Hotspot:
         js = self.json()
         x *= 100
         y *= 100
-        print x,y,js
+        print(x,y,js)
         if x>js["x"] and x<js["width"]+js["x"] and y>js["y"] and y<js["height"]+js["y"]:
             return True
         return False
@@ -227,14 +227,14 @@ class Expression:
     # Converts dot notation to bracket notation ("noc.kvm[0].screen" => "[noc][kvm][0][screen]")
     def convert_variable_name(self, val1):
         var_elems = val1.split(".")
-	var_reference = ""
-	for e in var_elems:
+        var_reference = ""
+        for e in var_elems:
             m2 = re.match(r"([a-zA-Z_]+)\[(\d+)\]", e)
-	    if m2:
+            if m2:
                 var_reference += "[\"%s\"][%s]"%(m2.groups()[0], m2.groups()[1])
-	    else:
+            else:
                 var_reference += "[\"%s\"]"%e
-	return var_reference
+        return var_reference
 
     # Single value, single operator, single value.
     def evaluateBasicExprRE(self, expr):
@@ -253,7 +253,7 @@ class Expression:
                 #print "We have an item: ",variables["item:"+val1]
                 loc = variables["item:"+val1].location
                 #print loc,val2
-		print "Checking to see if %s is in %s (location=%s)"%(val1,val2,loc)
+                print("Checking to see if %s is in %s (location=%s)"%(val1,val2,loc))
                 if loc == val2:
                     return "True"
                 else:
@@ -263,11 +263,11 @@ class Expression:
             if val1 == "true": val1 = True
             elif ns_spec == "":
                 if val1 in variables:
-		    val1 = variables[val1]
-		else:
+                        val1 = variables[val1]
+                else:
                     var_reference = self.convert_variable_name(val1)
-		    print "%s converted to %s (==%s)"%(val1, var_reference, eval("variables%s"%var_reference))#variables[var_reference])
-		    val1 = eval("variables%s"%var_reference)#variables[var_reference]
+                    print("%s converted to %s (==%s)"%(val1, var_reference, eval("variables%s"%var_reference)))#variables[var_reference])
+                    val1 = eval("variables%s"%var_reference)#variables[var_reference]
             elif val1[0] in string.digits and "." in val1: val1 = float(val1)
             elif val1[0] in string.digits and "." not in val1:val1 = int(val1)
             else: val1 = variables["%s:%s"%(ns_spec,val1)]
@@ -278,11 +278,11 @@ class Expression:
             elif val2[0] in string.digits and "." not in val2:val2 = float(val2)
             else:
                 if val2 in variables:
-		    val2 = variables["%s"%val2]
-		else:
+                    val2 = variables["%s"%val2]
+                else:
                     var_reference = self.convert_variable_name(val2)
-		    print "%s converted to %s (==%s)"%(val2, var_reference, eval("variables%s"%var_reference))#variables[var_reference])
-		    val2 = eval("variables%s"%var_reference)#variables[var_reference]
+                    print("%s converted to %s (==%s)"%(val2, var_reference, eval("variables%s"%var_reference)))#variables[var_reference])
+                    val2 = eval("variables%s"%var_reference)#variables[var_reference]
 
             #print "%s%s%s"%(val1,op,val2)
             if eval("%s%s%s"%(val1,op,val2)):
@@ -339,7 +339,7 @@ class LogicNode:
 
     # Finds all applicable RenderNodes
     def render(self, dest_slide, state):
-        print self.elem.localName
+        print(self.elem.localName)
         if self.elem.localName == "if":
             # Evaluate some expression!
             result = self.parseExpression(self.elem.getAttribute("expr"), state)
@@ -410,15 +410,15 @@ class RenderNode:
                                        "tstart": float(self.elem.getAttribute("tstart")),
                                        "tend": float(self.elem.getAttribute("tend")),
                                        "dest": self.elem.getAttribute("dest")})
-	elif self.elem.getAttribute("type") == "delay":
+        elif self.elem.getAttribute("type") == "delay":
             wa_hs = world_api.makeHotspot("xyxy:0.0,0.0,0.0,0.0", self.elem.getAttribute("action"))
-	    hs = Hotspot()
-	    hs.fromAPI(wa_hs)
-	    dest_slide.actions.append({"action": "triggerHotspot",
-				       "hs_id": hs.id,
-				       "delay": float(self.elem.getAttribute("delay"))})
-	    dest_slide.addHotspot(hs)
-	    print "Added a delay action to the current slide (h_id=%s)."%hs.id
+            hs = Hotspot()
+            hs.fromAPI(wa_hs)
+            dest_slide.actions.append({"action": "triggerHotspot",
+                                       "hs_id": hs.id,
+                                       "delay": float(self.elem.getAttribute("delay"))})
+            dest_slide.addHotspot(hs)
+            print("Added a delay action to the current slide (h_id=%s)."%hs.id)
             pass
         pass
 
@@ -455,8 +455,8 @@ class RenderNode:
         pass
 
 import sys
-sys.path.append("../worlds/lasa")
-import api
+#sys.path.append("../worlds/lasa")
+#import api
 
 class APINode:
     def __init__(self):
@@ -480,7 +480,7 @@ class APINode:
             #s = api.generateSlide(args, state)
             tocall = getattr(api, self.elem.getAttribute("method"))
             s = tocall(args, state)
-            print s
+            print(s)
             if s:
                 dest_slide.fromAPISlide(s)
             pass
@@ -530,7 +530,7 @@ class RenderSlide:
         self.dynamic_screens = []
 
     def fromAPISlide(self, s):
-        print "Converting from API slide %s"%s.src_img
+        print("Converting from API slide %s"%s.src_img)
         self.hotspots = []
         self.items = []
 
@@ -557,7 +557,7 @@ class RenderSlide:
 
         # Try the dynamic screens...
         for ds in self.dynamic_screens:
-            print ds
+            print(ds)
             hs = ds["content"].getHotspot(h_id)
             if hs:
                 return hs
@@ -582,7 +582,7 @@ class RenderSlide:
             j["i"] = z_index
             hs_list.append(j)
             z_index += 1
-	    print "Creating hotspot ",v.id
+            print("Creating hotspot ",v.id)
         snd_list = []
         for s in self.sounds:
             snd_list.append(s.json())
@@ -633,9 +633,9 @@ class Item:
 
         self.api_obj = None
 
-	# Used if we're saving a game
-	self.must_ignore_elem = False
-	self.json_store = None
+        # Used if we're saving a game
+        self.must_ignore_elem = False
+        self.json_store = None
         pass
 
     def fromAPI(self, i):
@@ -648,7 +648,7 @@ class Item:
         if self.api_obj is not None:
             return {"id": self.api_obj.id, "thumbnail": self.api_obj.thumbnail, "fullsize": self.api_obj.fullsize}
 
-	if self.must_ignore_elem:
+        if self.must_ignore_elem:
             return self.json_store
 
         e = self.elem.getElementsByTagName("thumbnail")
@@ -663,19 +663,19 @@ class Item:
                 obj = {"type": "slide", "src": m.groups()[1]}
                 pass
 
-	e = self.elem.getElementsByTagName("aspect").item(0)
-	aspect = 1.0
-	if e:
+        e = self.elem.getElementsByTagName("aspect").item(0)
+        aspect = 1.0
+        if e:
             m = re.match(r"([0-9\.]+):([0-9\.]+)", e.getAttribute("val"))
-	    aspect = float(m.groups()[0]) / float(m.groups()[1])
-	    obj["aspect"] = aspect
+            aspect = float(m.groups()[0]) / float(m.groups()[1])
+            obj["aspect"] = aspect
 
-	e = self.elem.getElementsByTagName("width").item(0)
-	if e:
+        e = self.elem.getElementsByTagName("width").item(0)
+        if e:
             obj["setWidth"] = float(e.getAttribute("val"))
 
-	e = self.elem.getElementsByTagName("height").item(0)
-	if e:
+        e = self.elem.getElementsByTagName("height").item(0)
+        if e:
             obj["setHeight"] = float(e.getAttribute("val"))
         return {"id": self.id, "thumbnail": thumb, "fullsize": obj}
 
@@ -691,7 +691,7 @@ class Item:
         self.__init__()
         self.must_ignore_elem = True
         self.json_store = state["json"]
-	self.location = state["location"]
+        self.location = state["location"]
         pass
 
 def elemGetAttr(elem, key, default=None):
@@ -726,64 +726,64 @@ class State:
         # Dynamic state
         self.players = {}
         self.state = {"has_red_overlay": True}
-	self.interface = None
+        self.interface = None
 
         # Lyst's internal state
         self.state["__lyst"] = {"dynamic_screens": {}, "player_items": []}
 
     def addInterface(self, interface):
         self.interface = interface
-	self.state["__lyst"]["interface"] = APIClientInterface(interface)
+        self.state["__lyst"]["interface"] = APIClientInterface(interface)
 
     # Used to debug the pickling process to figure out what won't pickle.
     def debugPickle(self, topickle):
-        for k,v in topickle.items():
-		try:
-                    print "%s: %s"%(k, len(pickle.dumps(v)))
-		except:
-                    print "*** Could not pickle %s"%k
-		    did_work = False
-	if not did_work:
-                print "Finished trying everything, errors occurred."
-	else:
-                print "Finished trying everything, error-free"
+        for k,v in list(topickle.items()):
+                try:
+                    print("%s: %s"%(k, len(pickle.dumps(v))))
+                except:
+                    print("*** Could not pickle %s"%k)
+                    did_work = False
+        if not did_work:
+                print("Finished trying everything, errors occurred.")
+        else:
+                print("Finished trying everything, error-free")
         pass
 
     def statePureDict(self):
         #print "State: ", self.state
-	#print "Slides: ", self.slides
-	#open("state-out.save", "w").write("%s"%self.state)
-	#open("slides-out.save", "w").write("%s"%self.slides)
-	if False:
+        #print "Slides: ", self.slides
+        #open("state-out.save", "w").write("%s"%self.state)
+        #open("slides-out.save", "w").write("%s"%self.slides)
+        if False:
             did_work = True
-	    for k,v in self.state.items():
+            for k,v in list(self.state.items()):
                 try:
-                    print "%s: %s"%(k, len(pickle.dumps(v)))
-		except:
-                    print "*** Could not pickle %s"%k
-		    self.debugPickle(v)
-		    did_work = False
-	    if not did_work:
-                print "Finished trying everything, errors occurred."
-	    else:
-                print "Finished trying everything, error-free"
+                    print("%s: %s"%(k, len(pickle.dumps(v))))
+                except:
+                    print("*** Could not pickle %s"%k)
+                    self.debugPickle(v)
+                    did_work = False
+            if not did_work:
+                print("Finished trying everything, errors occurred.")
+            else:
+                print("Finished trying everything, error-free")
 
-	return {"content": pickle.dumps(self.state)}
-	#return {"slides": pickle.dumps(self.slides)}
-	return {"content": pickle.dumps(self.state)}
+        return {"content": pickle.dumps(self.state)}
+        #return {"slides": pickle.dumps(self.slides)}
+        return {"content": pickle.dumps(self.state)}
         #return {"content": pickle.dumps(self.state), "slides": pickle.dumps(self.slides)}
 
     def stateFromDict(self, d):
         # The dom should be loaded by main.py
-	#dom = xml.dom.minidom.parse("../worlds/lasa/world.xml")
-	#self.fromDOM(dom)
+        #dom = xml.dom.minidom.parse("../worlds/lasa/world.xml")
+        #self.fromDOM(dom)
 
-	# Reset the state b/c the DOM sets the state, which is unwanted.
-	self.state = {}
+        # Reset the state b/c the DOM sets the state, which is unwanted.
+        self.state = {}
         self.state = pickle.loads(d["content"])
         #self.slides = pickle.loads(d["slides"])
-	# TODO: This shouldn't rely on the world being LASA.
-	dom = xml.dom.minidom.parse("../worlds/lasa/world.xml")
+        # TODO: This shouldn't rely on the world being LASA.
+        dom = xml.dom.minidom.parse("../worlds/lasa/world.xml")
         for i in dom.getElementsByTagName("dynamic_screen"):
             if i.parentNode.nodeName == "world":
                 self.dynamicScreenFromDOM(i)
@@ -803,34 +803,34 @@ class State:
         for i in self.state["__lyst"]["player_items"]:
             ds.items.append(self.state["item:"+i])
 
-	# This is a little bit hackish, but it gets the job done.
-	print "Red overlay: ",self.state["has_red_overlay"]
-	if self.state["has_red_overlay"]:
+        # This is a little bit hackish, but it gets the job done.
+        print("Red overlay: ",self.state["has_red_overlay"])
+        if self.state["has_red_overlay"]:
             ds.actions.append({"action": "setRedOverlay"})
-	else:
+        else:
             ds.actions.append({"action": "unsetRedOverlay"})
 
-	# Another hack, even worse than the last.
-	# TODO: Implement a <background-noise> tag.
-	import world_api
-	if "noc-" == self.players[p_id].cur_slide_id[:4]:
+        # Another hack, even worse than the last.
+        # TODO: Implement a <background-noise> tag.
+        import world_api
+        if "noc-" == self.players[p_id].cur_slide_id[:4]:
             snd = world_api.Sound()
-	    snd.file = "noc-background.ogg"
-	    snd.volume = 0.5
-	    snd.looping = True
+            snd.file = "noc-background.ogg"
+            snd.volume = 0.5
+            snd.looping = True
             ds.sounds.append(snd)
-	else:
+        else:
             snd = world_api.Sound()
-	    snd.file = "noc-background.ogg"
-	    snd.volume = 0.0
-	    snd.looping = True
+            snd.file = "noc-background.ogg"
+            snd.volume = 0.0
+            snd.looping = True
             ds.sounds.append(snd)
 
         return ds
 
     def evaluateHotspotAction(self, action):
         # For now, we only support <variable>+=<integer>
-        print "Evaluating hotspot action %s"%action
+        print("Evaluating hotspot action %s"%action)
         match = re.match(r"([a-zA-Z\.\-_\[\]0-9]+?)(\+=|-=|=)([\d\.\-]+|true|false)\(?(.*)\)?", action)
         if match:
             var_name = match.groups()[0]
@@ -838,9 +838,9 @@ class State:
             op = match.groups()[1]
             extra = match.groups()[3]
 
-	    if v == "true":
+            if v == "true":
                 v = True
-	    elif v == "false":
+            elif v == "false":
                 v = False
 
             var_elems = var_name.split(".")
@@ -851,23 +851,23 @@ class State:
                     var_reference += "[\"%s\"][%s]"%(m2.groups()[0], m2.groups()[1])
                 else:
                     var_reference += "[\"%s\"]"%e
-            print "%s => %s %s %s"%(var_name, var_reference, op, v)
+            print("%s => %s %s %s"%(var_name, var_reference, op, v))
             exec("self.state%s %s %s"%(var_reference,op,v))
 
             # Execute the (one or more) 'extra'(s)
-            print "We have some extra data: '%s'"%extra
+            print("We have some extra data: '%s'"%extra)
             for m2 in re.finditer(r"(\w*)\(([^\)]*),?\)", extra):
                 fn = m2.groups()[0]
                 g = m2.groups()[1:]
                 if fn == "mod":
                     # The modulo operator!
-                    print g
+                    print(g)
                     mod_factor = int(g[0])
                     exec("self.state%s = self.state%s %% %i"%(var_reference, var_reference, mod_factor))
                 pass
             pass
         else:
-            print "Could not understand '%s'"%action
+            print("Could not understand '%s'"%action)
         pass
 
     # Has the given player click on the given hotspot
@@ -877,7 +877,7 @@ class State:
         is_from_ds = False
         ds_key = ""
         if not hs:
-            for key, ds in self.dynamic_screens.items():
+            for key, ds in list(self.dynamic_screens.items()):
                 for hss in ds.hotspots:
                     if hss.id == h_id:
                         hs = hss
@@ -887,10 +887,10 @@ class State:
             #hs = self.getDynamicScreen(h_id)
 
         # First, check if it has an API call...
-	if not hs:
+        if not hs:
             # TODO: Fix this bug.
-            print "WARNING: hs == None after pulled from dynamic screen"
-	    return
+            print("WARNING: hs == None after pulled from dynamic screen")
+            return
         apicall = hs.getAPICall()
         if apicall:
             tocall = getattr(api, apicall["method"])
@@ -901,7 +901,7 @@ class State:
                 return s
 
         # Perform the default events...
-        print "Triggering hotspot: ", hs.getAction()
+        print("Triggering hotspot: ", hs.getAction())
         for a in hs.getAction().split(","):
             action = a.split(":")
             if action[0] == "state":
@@ -919,13 +919,13 @@ class State:
                 # Move to said panel by linking
                 self.players[p_id].cur_slide_id = action[1]
 
-		# Link also carries with it a sound. Let's play it.
+                # Link also carries with it a sound. Let's play it.
                 import world_api
                 ds = world_api.DeltaSlide()
-		ds.add(world_api.DSPlaySound("link.wav"))
+                ds.add(world_api.DSPlaySound("link.wav"))
                 s = RenderDeltaSlide()
-		s.fromAPI(ds)
-		self.state["__lyst"]["interface"].sendDeltaSlide(s)
+                s.fromAPI(ds)
+                self.state["__lyst"]["interface"].sendDeltaSlide(s)
                 pass
             elif action[0] == "move":
                 # Move to said panel by moving
@@ -936,28 +936,28 @@ class State:
                 self.state["item:"+action[1]].location = "player:%s"%p_id
                 #self.players[p_id].items.append(self.state["item:"+action[1]])
                 #self.players[p_id].items.append(action[1])
-		self.state["__lyst"]["player_items"].append(action[1])
+                self.state["__lyst"]["player_items"].append(action[1])
                 pass
-	    elif action[0] == "play":
+            elif action[0] == "play":
                 import world_api
                 ds = world_api.DeltaSlide()
-		ds.add(world_api.DSPlaySound("link.wav"))
+                ds.add(world_api.DSPlaySound("link.wav"))
                 s = RenderDeltaSlide()
-		s.fromAPI(ds)
-		self.state["__lyst"]["interface"].sendDeltaSlide(s)
+                s.fromAPI(ds)
+                self.state["__lyst"]["interface"].sendDeltaSlide(s)
                 pass
-	    elif action[0] == "action":
+            elif action[0] == "action":
                 if action[1] == "closeItem":
                     # Send a quick note to close the slide
                     import world_api
-		    ds = world_api.DeltaSlide()
-		    ds.add(world_api.DSCustomEvent({"action": "closeItem"}))
+                    ds = world_api.DeltaSlide()
+                    ds.add(world_api.DSCustomEvent({"action": "closeItem"}))
                     s = RenderDeltaSlide()
-		    s.fromAPI(ds)
+                    s.fromAPI(ds)
                     self.state["__lyst"]["interface"].sendDeltaSlide(s)
-	    elif action[0] == "affectmain":
+            elif action[0] == "affectmain":
                 is_from_ds = False
-        print "(new) Current slide: %s"%(self.players[p_id].cur_slide)
+        print("(new) Current slide: %s"%(self.players[p_id].cur_slide))
 
         # We may only want to reload the dynamic screen it's from
         if is_from_ds:
@@ -972,22 +972,22 @@ class State:
         overlapping = []
         for hs in slide.hotspots:
             # Check to see if it's overlapping this hotspot.
-            print hs.getAction(), hs.options
+            print(hs.getAction(), hs.options)
             if hs.contains(item_pos["left"],item_pos["top"]):
                 # Does this hotspot allow taking items?
                 if "can-takeitem" in hs.options:
                     # For now, they're keyed to the item.
                     #if hs.getAction() == "take:%s"%item_id:
                     overlapping.append(hs)
-		elif "put:" in hs.getAction():
+                elif "put:" in hs.getAction():
                     overlapping.append(hs)
-		elif hs.getAPICall("itemDragged"):
+                elif hs.getAPICall("itemDragged"):
                     overlapping.append(hs)
             pass
 
-        print "There are %i hotspots overlapping %s"%(len(overlapping),item_pos)
+        print("There are %i hotspots overlapping %s"%(len(overlapping),item_pos))
         if len(overlapping) == 0:
-            print "There are no overlapping hotspots that will take an item."
+            print("There are no overlapping hotspots that will take an item.")
             return
 
         # Trigger an API callback for the topmost hotspot
@@ -998,9 +998,9 @@ class State:
             if retval:
                 # Remove item, add to the slide
                 self.state["item:"+item_id].location = self.players[p_id].cur_slide_id
-		self.state["__lyst"]["player_items"].remove(item_id)
-		print "Player's items: ", self.state["__lyst"]["player_items"], item_id
-                print self.players[p_id].items, item_id
+                self.state["__lyst"]["player_items"].remove(item_id)
+                print("Player's items: ", self.state["__lyst"]["player_items"], item_id)
+                print(self.players[p_id].items, item_id)
                 for i in self.players[p_id].items:
                     if i.id == item_id:
                         self.players[p_id].items.remove(i)
@@ -1009,8 +1009,8 @@ class State:
         else:
             # We want to remove the item from inventory and add it to the slide
             self.state["item:"+item_id].location = self.players[p_id].cur_slide_id
-	    self.state["__lyst"]["player_items"].remove(item_id)
-            print self.players[p_id].items, item_id
+            self.state["__lyst"]["player_items"].remove(item_id)
+            print(self.players[p_id].items, item_id)
             for i in self.players[p_id].items:
                 if i.id == item_id:
                     self.players[p_id].items.remove(i)
@@ -1024,7 +1024,7 @@ class State:
         dynscr = self.state["__lyst"]["dynamic_screens"][dyn_id]
         s = dynscr.render(self.state)
         self.dynamic_screens[dyn_id] = s
-        print "My dynamic screens: ", self.dynamic_screens
+        print("My dynamic screens: ", self.dynamic_screens)
         return s
 
     # Loads the world from a DOM
@@ -1105,11 +1105,11 @@ class State:
     def addPlayer(self,p):
         self.players[p.id] = p
 
-from twisted.internet import reactor
+#from twisted.internet import reactor
 
 def schedule(delay, fn, *args):
-    reactor.callLater(delay, fn, *args)
-    print "Scheduling task for %f seconds in the future"%delay
+    asyncio.get_event_loop().callLater(delay, fn, *args)
+    print("Scheduling task for %f seconds in the future"%delay)
     pass
 
 if __name__=="__main__":
@@ -1131,18 +1131,18 @@ if __name__=="__main__":
     #ds = RenderSlide()
     #state.slides['lockers'].logic.render(ds,state.state)
     ds = state.render(p.id)
-    print ds.json()
+    print(ds.json())
 
     # Trigger a hotspot
     state.triggerHotspot(p.id, "open-locker")
 
     # Render again...
-    print state.render(p.id).json()
+    print(state.render(p.id).json())
 
     # Take the note...
     state.triggerHotspot(p.id, "take-note")
-    print state.render(p.id).json()
+    print(state.render(p.id).json())
 
     # Close the locker again...
     state.triggerHotspot(p.id, "open-locker")
-    print state.render(p.id).json()
+    print(state.render(p.id).json())

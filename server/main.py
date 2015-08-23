@@ -1,22 +1,31 @@
-from twisted.internet import reactor
+"""from twisted.internet import reactor
 from twisted.web.server import Site, resource
 from twisted.web.static import File
-from twisted.python import log
-from autobahn.wamp import WampServerFactory, \
+from twisted.python import log"""
+
+"""from autobahn.wamp import WampServerFactory, \
                                WampServerProtocol, \
                                exportRpc
-from autobahn.websocket import listenWS
+from autobahn.websocket import listenWS"""
+#from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
+#from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory
+import asyncio
+import websockets
+
 import json, uuid, sys, os, re, datetime
 import world2 as world
 import xml.dom
 import xml.dom.minidom
-import ConfigParser
+import configparser
 import mongoengine
+import logging
 
-log.startLogging(sys.stdout)
+logging.getLogger('websockets.server').setLevel(logging.DEBUG)
+
+#log.startLogging(sys.stdout)
 
 # Parse the config file (if there is one)
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read("config.cfg")
 
 db_server = None
@@ -54,11 +63,18 @@ lyst_Player_Worlds = {}
 #lyst_States["lasa"].fromDOM(dom)
 #lyst_States["lasa"].reset()
 
+def exportRpc(fn):
+   return fn
+
 # Now to the network interface
-class RpcServerProtocol(WampServerProtocol):
-   def __init__(self):
+#class RpcServerProtocol(WampServerProtocol):
+class RpcServerProtocol:
+   def __init__(self, websocket):
+      #ApplicationSession.__init__(self, config)
       #WampServerProtocol.__init__(self)
-      self.hasConnection = False
+      #WebSocketServerProtocol.__init__(self)
+      self.hasConnection = True
+      self.websocket = websocket
       self.player = None
       self.uid = None
       self.gid = None
@@ -66,10 +82,26 @@ class RpcServerProtocol(WampServerProtocol):
       self.username = None
       self.game_id = None
       self.world_id = None
-      print "Init!"
+      print("Init!")
 
-   def connectionLost(self, reason):
-      print "Lost connection to player %s, due to %s"%(self.uid,reason)
+      self.__exported_rpc_functions = {
+         "add": self.add,
+         "userLogin": self.userLogin,
+         "userLoginCookie": self.userLoginCookie,
+         "renderDynamicSlide": self.renderDynamicSlide,
+         "itemDrag": self.itemDrag,
+         "saveGame": self.saveGame,
+         "chooseGame": self.chooseGame,
+         "startGame": self.startGame,
+         "registerUser": self.registerUser,
+         "slideClick": self.slideClick
+      }
+
+   def callFunction(self, fn, args):
+      return self.__exported_rpc_functions[fn](*tuple(args))
+
+   def onDisconnect(self):
+      print("Lost connection to player %s"%(self.uid))
       self.hasConnection = False
       if self.uid:
          player_Index_Locks.remove(self.uid)
@@ -77,9 +109,27 @@ class RpcServerProtocol(WampServerProtocol):
       self.uid = None
       self.player = None
       self.state = None
-      WampServerProtocol.connectionLost(self, reason)
+      #WampServerProtocol.connectionLost(self, reason)
 
-   @exportRpc("add")
+   """def onMessage(self, payload, isBinary):
+      # TODO: Call the exportRpc methods.
+      s = payload.decode('utf8')
+      #self.sendMessage(s.encode('utf8'), isBinary=False)
+      pass"""
+
+   def sendRpc(self, payload):
+      """if not self.hasConnection:
+         return"""
+      print("Sending RPC...")
+      #return
+      asyncio.async(self.websocket.send(json.dumps(payload)))
+
+      """def onJoin(self):
+      #self.registerForRpc(self, "http://example.com/simple/calc#")
+      #self.registerForPubSub("http://example.com/calcevent#evt1")
+      #reactor.callLater(2, self.sendRpc, {"action": "loadSlide", "slide": {"image": 5}})
+      self.hasConnection = True"""
+
    def add(self, x, y):
       return x + y
 
@@ -100,7 +150,7 @@ class RpcServerProtocol(WampServerProtocol):
 
    @exportRpc
    def generateUid(self):
-      print "Generating uuid"
+      print("Generating uuid")
       return "asdf"#str(uuid.uuid4())
 
    @exportRpc
@@ -113,23 +163,23 @@ class RpcServerProtocol(WampServerProtocol):
          return {"error": "User already exists."}
 
       # Add the user to the database
-      print "Registering user %s"%obj
+      print("Registering user %s"%obj)
       u = DBUser(username=obj["username"], game_list=[], email=obj["email"], pw_hash=pw_hash, fullname=obj["fullname"])
       u.save()
       return {}
 
    @exportRpc
    def userLogin(self, username, password):
-      print "User %s logged in."%username
+      print("User %s logged in."%username)
 
       u = DBUser.objects(username=username).first()
       if not u:
          #u = DBUser(username=username, game_list=[])
          #u.save()
-         print "No such user %s"%username
+         print("No such user %s"%username)
          return {"error": "yes"}
       if password != u.pw_hash:
-         print "Incorrect password for %s"%username
+         print("Incorrect password for %s"%username)
          return {"error": "yes"}
 
       self.username = username
@@ -149,16 +199,16 @@ class RpcServerProtocol(WampServerProtocol):
          games.append({"id": "new:%s"%w, "desc": "A new game in world %s."%w})
       #games.append({"id": "new:lasa", "desc": "A new game in world LASA."})
       return {"games": games, "cookie": cookie, "username": username}
-      return self.generateUid()
+      #return self.generateUid()
 
    @exportRpc
    def userLoginCookie(self, username, cookie):
       u = DBUser.objects(username=username).first()
       if not u:
-         print "No such user '%s'"%username
+         print("No such user '%s'"%username)
          return {"error": "yes"}
       if cookie not in u.cookies:
-         print "Cookie '%s' is not valid for user %s"%(cookie, username)
+         print("Cookie '%s' is not valid for user %s"%(cookie, username))
          return {"error": "yes"}
 
       self.username = username
@@ -173,8 +223,8 @@ class RpcServerProtocol(WampServerProtocol):
          games.append({"id": "new:%s"%w, "desc": "A new game in world %s."%w})
       #games.append({"id": "new:lasa", "desc": "A new game in world LASA."})
       return {"games": games, "cookie": cookie, "username": username}
-      return self.generateUid()
-      return self.userLogin("lane", "foobar")
+      #return self.generateUid()
+      #return self.userLogin("lane", "foobar")
 
    @exportRpc
    def chooseGame(self, game_id):
@@ -189,19 +239,19 @@ class RpcServerProtocol(WampServerProtocol):
    def startGame(self, uid):
       if uid in player_Index and False:
          if uid in player_Index_Locks:
-            print "Player %s tried to login twice."%uid
+            print("Player %s tried to login twice."%uid)
             return 1
          player_Index_Locks.append(uid)
          self.player = player_Index[uid]
          self.uid = uid
-         print "Player %s logged in again."%uid
+         print("Player %s logged in again."%uid)
       else:
          player_Index_Locks.append(uid)
          player_Index[uid] = world.Player()
          self.player = player_Index[uid]
          self.player.id = uid
          self.uid = uid
-         print "Player %s initialized."%uid
+         print("Player %s initialized."%uid)
 
       m = re.match(r"saved:(.*)", self.game_id)
       if not m:
@@ -231,7 +281,7 @@ class RpcServerProtocol(WampServerProtocol):
 
          world_id = g.world_id
          self.world_id = world_id
-         print "Putting player in world %s"%world_id
+         print("Putting player in world %s"%world_id)
          dom = xml.dom.minidom.parse("../worlds/%s/world.xml"%world_id)
          self.sendRpc({"action": "setCDNGameName", "name": world_id})
          self.lyst_state = world.State()
@@ -254,12 +304,12 @@ class RpcServerProtocol(WampServerProtocol):
    def login(self, uid):
       if uid in player_Index and False:
          if uid in player_Index_Locks:
-            print "Player %s tried to login twice."%uid
+            print("Player %s tried to login twice."%uid)
             #return 1
          player_Index_Locks.append(uid)
          self.player = player_Index[uid]
          self.uid = uid
-         print "Player %s logged in again."%uid
+         print("Player %s logged in again."%uid)
          return open("../worlds/index").read()
 
       player_Index_Locks.append(uid)
@@ -267,13 +317,13 @@ class RpcServerProtocol(WampServerProtocol):
       self.player = player_Index[uid]
       self.player.id = uid
       self.uid = uid
-      print "Player %s logged in."%uid
+      print("Player %s logged in."%uid)
 
       return open("../worlds/index").read()
 
    @exportRpc
    def chooseWorld(self, world_id, uid):
-      print "They chose world %s"%world_id
+      print("They chose world %s"%world_id)
       #self.player.world = world.LystWorld("../worlds/%s/world.xml"%world_id)
       #self.lyst_state = lyst_States[world_id]
 
@@ -292,7 +342,7 @@ class RpcServerProtocol(WampServerProtocol):
 
    @exportRpc
    def slideClick(self, id):
-      print "Clicked on: ",id
+      print("Clicked on: ",id)
       if id != 0:
          #self.player.clickOnHotspot(id)
          delta_slide = self.lyst_state.triggerHotspot(self.player.id, id)
@@ -304,17 +354,19 @@ class RpcServerProtocol(WampServerProtocol):
             if isinstance(delta_slide, dict):
                self.sendRpc({"action": "loadDynScr", "delta": delta_slide})
             else:
-               print delta_slide.json()
+               print(delta_slide.json())
                self.sendRpc({"action": "loadDeltaSlide", "delta": delta_slide.json()})
-            print "Telling client to apply a delta slide"
+            print("Telling client to apply a delta slide")
             return 0
       #print self, self.player
       #print self.player.world, self.player.currentSlide
       #slide = self.player.world.get_slide(self.player.currentSlide)
       slide = self.lyst_state.render(self.player.id)
       #print slide.json()
-      self.sendRpc({"action": "loadSlide", "slide": slide.json()})
-      print "Telling them to load a new slide."
+      json_data = slide.json()
+      print("Check check...")
+      self.sendRpc({"action": "loadSlide", "slide": json_data})
+      print("Telling them to load a new slide.")
 
       return 0
 
@@ -328,24 +380,13 @@ class RpcServerProtocol(WampServerProtocol):
    def itemDrag(self, obj):
       item_id = obj["id"]
       item_pos = obj["pos"]
-      print "%s was dragged to %s"%(item_id, item_pos)
+      print("%s was dragged to %s"%(item_id, item_pos))
       self.lyst_state.itemDragged(self.player.id, item_id, item_pos)
       slide = self.lyst_state.render(self.player.id)
       self.sendRpc({"action": "loadSlide", "slide": slide.json()})
       return 0
 
-   def sendRpc(self, payload):
-      if not self.hasConnection:
-         return
-      #print "Sending RPC..."
-      self.sendMessage(json.dumps([9, payload]))
-
-   def onSessionOpen(self):
-      self.registerForRpc(self, "http://example.com/simple/calc#")
-      self.registerForPubSub("http://example.com/calcevent#evt1")
-      #reactor.callLater(2, self.sendRpc, {"action": "loadSlide", "slide": {"image": 5}})
-      self.hasConnection = True
- 
+"""
 class Picture(resource.Resource):
    isLeaf = True
    def render_GET(self, request):
@@ -371,7 +412,7 @@ class CDNResource(resource.Resource):
 class Root(resource.Resource):
    isLeaf = False
    def getChild(self, name, request):
-      print "Name: %s"%name
+      print("Name: %s"%name)
       if name == "index.html" or name == "":
          return self
       elif name == "cdns":
@@ -422,7 +463,7 @@ class Root(resource.Resource):
             path = "../%s"%("/".join(request.prepath))
       else:
          path = "../%s"%("/".join(request.prepath))
-      print path, request.prepath, request.postpath
+      print(path, request.prepath, request.postpath)
 
       # Now, serve the content
       try:
@@ -452,20 +493,48 @@ class Root(resource.Resource):
             request.setHeader("Expires", "Mon, 31 Dec 2035 12:00:00 GMT")
          return open(path).read()
       except IOError:
-         print "Got an error serving '%s'"%path
+         print("Got an error serving '%s'"%path)
          request.setResponseCode(404)
          return "<html><body>Not found!</body></html>"
-      print request.prepath
+      print(request.prepath)
       return open("./%s"%("".join(request.prepath))).read()
+"""
+
+@asyncio.coroutine
+def websocketHandler(websocket, path):
+   print("%s"%path)
+   protocol = RpcServerProtocol(websocket)
+   while 1:
+      x = yield from websocket.recv()
+      if x == None:
+         break
+      # Do what they say.
+      print(x)
+      obj = json.loads(x)
+      #res = protocol.__exported_rpc_functions[x["action"]](*tuple(x["args"]))
+      res = protocol.callFunction(obj["action"], obj["args"])
+      #res = protocol.add(1, 2)
+      print(res)
+      if res != None and "callback_id" in obj:
+         yield from websocket.send(json.dumps({"_cb_id": obj["callback_id"], "result": res}))
 
 if __name__ == '__main__':
-   factory = WampServerFactory("ws://localhost:9000", debugWamp=True)
+   #factory = WampServerFactory("ws://localhost:9000", debugWamp=True)
+   #factory.protocol = RpcServerProtocol
+   #listenWS(factory)
+   """factory = WebSocketServerFactory()
    factory.protocol = RpcServerProtocol
-   listenWS(factory)
+   reactor.listenTCP(9000, factory)"""
+   #runner = ApplicationRunner(url=u"ws://localhost:8080/ws", realm=u"lyst")
+
+   start_server = websockets.serve(websocketHandler, 'localhost', 9000, subprotocols=['binary'])
+   asyncio.get_event_loop().run_until_complete(start_server)
+   asyncio.get_event_loop().run_forever()
 
    #webdir = File("../")
    #web = Site(webdir)
-   web = Site(Root())
-   reactor.listenTCP(9001, web)
+   #web = Site(Root())
+   #reactor.listenTCP(9001, web)
 
-   reactor.run()
+   #reactor.run()
+   #runner.run(RpcServerProtocol)
