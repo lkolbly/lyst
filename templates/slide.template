@@ -4,30 +4,7 @@
 {{^has_frills}}
 <div id="main" style="margin:0;padding:0;width:100%;height:100%;position:absolute;-moz-transform-style:preserve-3d;-moz-transform:translateZ(100px)">
 {{/has_frills}}
-  {{#has_image}}
-  <img class="geometry-adjustable" src="{{#CDNify}}{{#Resify}}/pictures/{{slide.image.src}}{{/Resify}}{{/CDNify}}" style='margin:0;padding:0;position:absolute;width:100%;height:100%;cursor:url("cursors/default.cur"), default;z-index:-1000' geometry="0,0,100x100"/>
-  {{/has_image}}
-
-  {{#slide.images}}
-  {{#svg_data}}
-  <svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="geometry-adjustable" style='z-index:{{i}};margin:0;padding:0;margin-left:{{x}}%;margin-top:{{y}}%;position:absolute;width:{{w}}%;height:{{h}}%;cursor:url("cursors/default.cur"), default;' geometry="{{x}},{{y}},{{w}}x{{h}}">
-  <svg x="0" y="0" width="100%" height="100%" viewbox="0 0 100 100">
-  {{{svg_data}}}
-  </svg>
-  </svg>
-  {{/svg_data}}
-  {{^svg_data}}
-  <img id='{{id}}' class="geometry-adjustable" src="{{#CDNify}}{{#Resify}}/pictures/{{src}}{{/Resify}}{{/CDNify}}" style='z-index:{{i}};margin:0;padding:0;margin-left:{{x}}%;margin-top:{{y}}%;position:absolute;width:{{w}}%;height:{{h}}%;cursor:url("cursors/default.cur"), default;' geometry="{{x}},{{y}},{{w}}x{{h}}"/>
-  {{/svg_data}}
-  {{/slide.images}}
-
-  {{#slide.videos}}
-  <div class="video" style="position:absolute;z-index:0;margin-left:0px;margin-right:0px;padding:0;margin:0;cursor:url('cursors/default.cur'), default;">
-  <video style="padding:0;margin:0;cursor:url('cursors/default.cur'), default;" autoplay>
-  <source src="{{#CDNify}}{{#Resify}}/videos/{{src}}{{/Resify}}{{/CDNify}}" type="video/webm"/>
-  </video>
-  </div>
-  {{/slide.videos}}
+  <div id="render" style='margin:0;padding:0;position:absolute;width:100%;height:100%;cursor:url("cursors/default.cur"), default;'></div>
 
   {{#slide.hotspots}}
   <div id='{{id}}' style='z-index:{{i}};position:fixed;width:{{width}}%;height:{{height}}%;margin-left:{{x}}%;margin-top:{{y}}%;cursor:url("cursors/{{cursor}}.cur"), default;' class='hotspot geometry-adjustable' geometry="{{x}},{{y}},{{w}}x{{h}}"></div>

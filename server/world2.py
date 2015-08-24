@@ -26,7 +26,7 @@ def parseGeometryString(s):
 
 class DynamicScreen:
 	def __init__(self, elem=None):
-    	self.elem = None
+		self.elem = None
 		self.slide = None
 		if elem:
 			self.fromDOM(elem)

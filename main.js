@@ -511,6 +511,94 @@ function build_transform(map) {
     }
 }
 
+var ThreeHandler = function() {
+    var self = this;
+    this.ortho_camera = new THREE.OrthographicCamera(0.0, 1.0, 1.0, 0.0, -1.0, 1.0);
+    this.ortho_scene = new THREE.Scene();
+    this.ortho_scene.add(this.ortho_camera);
+
+    this.buildOrthoMesh = function(position, mat) {
+	var x = position.x || 0.0;
+	var y = position.y || 0.0;
+	var w = position.w || 100.0;
+	var h = position.h || 100.0;
+	var geo = new THREE.PlaneBufferGeometry(w/100.0,h/100.0, 1, 1);
+	var mesh = new THREE.Mesh(geo, mat);
+	mesh.position.x = w/200.0 + x/100.0;
+	mesh.position.y = 1.0 - (h/200.0 + y/100.0);
+	mesh.updateMatrix();
+	return mesh;
+    };
+
+    this.addImage = function(image) {
+	// TODO: Handle SVG data.
+	// TODO: CDNify and RESify.
+	var tex = THREE.ImageUtils.loadTexture("/1280x854/pictures/"+image.src);
+	var mat = new THREE.MeshBasicMaterial({map: tex});
+	var mesh = this.buildOrthoMesh(image, mat);
+	this.ortho_scene.add(mesh);
+    };
+
+    this.videos = [];
+    this.video_count = 0;
+
+    this.addVideo = function(video) {
+	var video_element = document.createElement('video');
+	video_element.src = "/1280x854/videos/intro.webm";
+	video_element.loop = false;
+	video_element.mute = audioStore.is_muted;
+	video_element.load();
+	video_element.play();
+	this.videos.push(video_element);
+
+	var tex = new THREE.VideoTexture(this.videos[this.videos.length-1]);
+	var mat = new THREE.MeshBasicMaterial({map: tex});
+	var mesh = this.buildOrthoMesh(video, mat);
+	this.ortho_scene.add(mesh);
+    };
+
+    this.clear = function() {
+	_.each(this.videos, function(video) {
+	    video.pause();
+	});
+	this.videos = [];
+
+	self.ortho_scene = new THREE.Scene();
+    };
+
+    this.renderer = new THREE.WebGLRenderer();
+
+    this.attachToElement = function(elem) {
+	this.renderer.setSize(elem.offsetWidth, elem.offsetHeight);
+	elem.appendChild(this.renderer.domElement);
+    };
+
+    this.render = function() {
+	requestAnimationFrame(_.bind(self.render, self));
+	this.renderer.render(this.ortho_scene, this.ortho_camera);
+    };
+    this.render();
+};
+
+var three_handler = new ThreeHandler();
+
+// Largely from http://threejs.org/examples/webgl_panorama_equirectangular.html
+function renderSlideThree(slide, dest_div) {
+    var container = $(dest_div+" > #main > #render")[0];
+
+    three_handler.clear();
+    three_handler.attachToElement(container);
+    three_handler.addImage(slide.image);
+
+    _.each(slide.images, function(image) {
+	three_handler.addImage(image);
+    });
+
+    _.each(slide.videos, function(video) {
+	three_handler.addVideo(video);
+    });
+}
+
 function renderSlideTo(slide, dest_div, has_frills) {
     console.log(slide);
     var has_image = true;
@@ -519,6 +607,9 @@ function renderSlideTo(slide, dest_div, has_frills) {
     }
     var s = template_Store.renderTemplate("slide", {slide: slide, has_frills: has_frills, has_image: has_image});
     $(dest_div).html(s);
+
+    // Build the threejs scene and the render div
+    renderSlideThree(slide, dest_div);
 
     if (has_frills) {
 	$('#items').enscroll({
@@ -545,8 +636,6 @@ function renderSlideTo(slide, dest_div, has_frills) {
 	ws_Sess.call("slideClick", [this.id], function(){});
     });
 }
-
-var red_Overlay_Enabled = false;
 
 // The 'slide' object holds information about the image and the hotspots.
 function loadSlide(slide) {
@@ -585,11 +674,10 @@ function loadSlide(slide) {
 
     // Now deal with the sounds
     for (i=0; i<slide.sounds.length; i++) {
-	//console.log(slide.sounds[i]);
 	audioStore.playFromJson(slide.sounds[i]);
     }
 
-    $(".video > video").bind("loadedmetadata", function() {
+    /*$(".video > video").bind("loadedmetadata", function() {
 	var dx = $(window).width() / $(this).get(0).videoWidth;
 	var tx = $(window).width() / 2 - $(this).parent().width() / 2;
 	var dy = $(window).height() / $(this).get(0).videoHeight;
@@ -602,7 +690,7 @@ function loadSlide(slide) {
 	} else {
 	    unmuteVideos();
 	}
-    });
+    });*/
 
     // Now deal with the "actions"
     for (i=0; i<slide.actions.length; i++) {
