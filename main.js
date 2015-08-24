@@ -49,19 +49,8 @@ function URLToCDN(text, render) {
 	    s = Game_CDNs[i].server + "/" + game_CDN_Name + "" + s;
 	    break;
 	}
-
-	/*var p = new RegExp(Game_CDNs[i].from);
-	console.log(s+" "+Game_CDNs[i].from);
-	if (p.test(text)) {
-	    p = new RegExp(Game_CDNs[i].from);
-	    var p2 = Game_CDNs[i].to;
-	    s = Game_CDNs[i].server + s.replace(p, p2);
-	    console.log("Replaced with: "+s);
-	    break;
-	}*/
-	//if (Game_CDNs[i].from.exec()
     }
-    return s;//render(text);
+    return s;
 }
 
 function checkBrowser()
@@ -137,12 +126,6 @@ function AudioStore() {
 	this.audioElements[aid].loop = is_looping;
 	console.log(is_looping);
 	if (is_looping) {
-	    /*this.audioElements[hex_md5(aid)].addEventListener('ended', function() {
-		console.log("Looping!");
-		this.currentTime = 0;
-		this.play();
-	    }, false);*/
-	    //alert("Hello?");
 	    $(this.audioElements[aid]).on("ended", function() {
 		//console.log("Looping some audio!");
 		$(this).get(0).currentTime = 0;
@@ -313,7 +296,6 @@ function openItem(item_id) {
     var full = item_Fullsizes[item_id];
     if (full.type === "image") {
 	var img_src = full.src;
-	//$("body").append("<div id='item-overlay' style='width:60%;height:60%' title='Item "+item_id+"'><img src='"+img_src+"' style='width:100%;height:100%'/></div>");
 	$("body").append(template_Store.renderTemplate("fullsizeItem", {img_src: img_src, item_id: item_id}));
 
 	// Load it
@@ -369,7 +351,6 @@ function openItem(item_id) {
 }
 
 function resizeAllRelatives() {
-    //$('#center').css({'height':(($(window).height())-162)+'px'});
     $(".geometry-adjustable").each(function (index) {
 	var x,y,w,h;
 	var re = /-?\d+(\.\d+)?/g;
@@ -519,10 +500,6 @@ function build_transform(map) {
 	values[14] = values[14];
 	values[15] = values[15];
 
-	/*console.log(values[4]+" "+w);
-	values[4] = values[4] * w;
-	values[5] = values[5] * h;*/
-
 	var s = "matrix3d("+values[0]+","+values[1]+","+values[2]+","+values[3]+","+values[4]+","+values[5]+","+values[6]+","+values[7]+","+values[8]+","+values[9]+","+values[10]+","+values[11]+","+values[12]+","+values[13]+","+values[14]+","+values[15]+")";
 	return s;
     } else if (map.type == "2d") {
@@ -542,7 +519,6 @@ function renderSlideTo(slide, dest_div, has_frills) {
     }
     var s = template_Store.renderTemplate("slide", {slide: slide, has_frills: has_frills, has_image: has_image});
     $(dest_div).html(s);
-    $("#lyst_red_overlay").css("display", "none");
 
     if (has_frills) {
 	$('#items').enscroll({
@@ -568,33 +544,21 @@ function renderSlideTo(slide, dest_div, has_frills) {
     $(".hotspot").click(function () {
 	ws_Sess.call("slideClick", [this.id], function(){});
     });
-
-		if (red_Overlay_Enabled) {
-		    console.log("Red overlay is enabled.");
-		    $("#lyst_red_overlay").css("display", "block");
-		} else {
-		    console.log("Red overlay is disabled.");
-		    $("#lyst_red_overlay").css("display", "none");
-		}
 }
 
 var red_Overlay_Enabled = false;
 
 // The 'slide' object holds information about the image and the hotspots.
 function loadSlide(slide) {
-    //var s = template_Store.renderTemplate("slide", {slide: slide});
     renderSlideTo(slide, "body", true);
     var x = ws_Sess;
-    //$("body").html(s);
     ws_Sess = x;
     $(".item").click(function () {
 	openItem(this.id);
     });
     $(".item").draggable({
-	/*containment: "body",*/
 	opacity: 0.7,
 	helper: function( event ) {
-	    //return $("<div>Hello!</div>").appendTo("body").show();
             var e = $(this).clone().appendTo("body").show();
 	    e.css("z-index", 10000);
 	    e.css("margin-left", 0);
@@ -602,7 +566,6 @@ function loadSlide(slide) {
 	    return e;
 	    return $("<img src='"+$(this).attr("src")+"'/>");
 	},
-	/*helper: "clone",*/
 	cursor: "url('cursors/grab.cur'), default",
 	cursorAt: {top: 0, left: 0},
 	stop: function(ev, ui) {
@@ -648,23 +611,7 @@ function loadSlide(slide) {
 	    setTimeout(function () {
 		$("#"+h_id).trigger("click");
 	    }, slide.actions[i].delay * 1000.0);
-	} else if (slide.actions[i].action === "setRedOverlay") {
-	    // This is a very poor way to implement the red overlay.
-	    // Ideally we have something that will scale to other uses.
-	    console.log("Setting the red overlay.");
-	    $("#lyst_red_overlay").css("display", "block");
-	    red_Overlay_Enabled = true;
-	} else if (slide.actions[i].action === "unsetRedOverlay") {
-	    red_Overlay_Enabled = false;
 	}
-    }
-
-    if (red_Overlay_Enabled) {
-	console.log("Red overlay is enabled.");
-	$("#lyst_red_overlay").css("display", "block");
-    } else {
-	console.log("Red overlay is disabled.");
-	$("#lyst_red_overlay").css("display", "none");
     }
 
     // And finally, the save game button.
@@ -766,13 +713,12 @@ var connection_Error_Screen = new connectionErrorScreen();
 var is_first_load = true;
 
 function chooseGame(game_id) {
-    ws_Sess.call("chooseGame", [game_id],
-	function(uid) {
-	    setCookie("lyst_user_uid", uid);
+    ws_Sess.call("chooseGame", [game_id], function(uid) {
+	setCookie("lyst_user_uid", uid);
 
-	    // And now we wait
-	    ws_Sess.call("startGame", [uid]);
-	});
+	// And now we wait
+	ws_Sess.call("startGame", [uid]);
+    });
 };
 
 function signout() {
@@ -782,7 +728,6 @@ function signout() {
 };
 
 window.onload = function() {
-
     if (!is_first_load) {
 	return;
     }
@@ -814,14 +759,13 @@ window.onload = function() {
 	$("#debug-mouse-coords").html(w.toFixed(2)+"%x"+h.toFixed(2)+"%");
     });
 
-   var wsuri;
-   if (window.location.protocol === "file:") {
-      wsuri = "ws://localhost:9000";
-   } else {
-      wsuri = "ws://" + window.location.hostname + ":9000";
-   }
+    var wsuri;
+    if (window.location.protocol === "file:") {
+	wsuri = "ws://localhost:9000";
+    } else {
+	wsuri = "ws://" + window.location.hostname + ":9000";
+    }
 
-    //var ws = new autobahn.Connection({url: wsuri, realm: 'lyst'});
     var ws = new WebSocket(wsuri);
     ws.onmessage = function(event) {
 	console.log(event.data);
@@ -830,86 +774,79 @@ window.onload = function() {
 	    ws_Sess._cb_ids[o._cb_id](o.result);
 	} else {
             console.log(o + " unsolicited by, action = " + o.action);
-	   //console.log(ws_Sess);
-           if (o.action === "loadSlide") {
-               loadSlide(o.slide);
-	   } else if (o.action === "loadDeltaSlide") {
-	       loadDeltaSlide(o.delta);
-           } else if (o.action === "preloadImage") {
-               image_Store.addImage(o.image_uri);
-	   } else if (o.action === "loadDynScr") {
-	       loadDynScr(o);
-	   } else if (o.action === "setCDNGameName") {
-	       game_CDN_Name = o.name;
-           }
+	    //console.log(ws_Sess);
+            if (o.action === "loadSlide") {
+		loadSlide(o.slide);
+	    } else if (o.action === "loadDeltaSlide") {
+		loadDeltaSlide(o.delta);
+            } else if (o.action === "preloadImage") {
+		image_Store.addImage(o.image_uri);
+	    } else if (o.action === "loadDynScr") {
+		loadDynScr(o);
+	    } else if (o.action === "setCDNGameName") {
+		game_CDN_Name = o.name;
+            }
 	}
     };
     ws.onopen = function(event) {
-          ws_Sess = {
-	      _cb_cnt: 0,
-	      _cb_ids: {},
-	      call: function(fn, args, cb) {
-		  console.log("Calling "+fn);
-		  if (cb !== undefined) {
-		      var callback_id = this._cb_cnt++; // The ID they should callback at
-		      this._cb_ids[callback_id] = cb;
-		      ws.send(JSON.stringify({action: fn, callback_id: callback_id, args: args}));
-		  } else {
-		      ws.send(JSON.stringify({action: fn, args: args}));
-		  }
-	      }
-	  };
- 
-          console.log("Connected to " + wsuri);
-	  //console.log(ws_Sess);
-	  connection_Error_Screen.stopError();
-	  //$("#login-form").dialog("open");
-          //test();
+        ws_Sess = {
+	    _cb_cnt: 0,
+	    _cb_ids: {},
+	    call: function(fn, args, cb) {
+		console.log("Calling "+fn);
+		if (cb !== undefined) {
+		    var callback_id = this._cb_cnt++; // The ID they should callback at
+		    this._cb_ids[callback_id] = cb;
+		    ws.send(JSON.stringify({action: fn, callback_id: callback_id, args: args}));
+		} else {
+		    ws.send(JSON.stringify({action: fn, args: args}));
+		}
+	    }
+	};
+	
+        console.log("Connected to " + wsuri);
+	connection_Error_Screen.stopError();
 
+	// If we have a login cookie, let's try to login with that.
+	var user_cookie = getCookie("lyst-user");
+	var auth_cookie = getCookie("lyst-auth-cookie");
+	if (user_cookie === null || auth_cookie === null) {
+	    // Stay the course
+	} else {
+	    // Try to authenticate
+	    ws_Sess.call("userLoginCookie", [user_cookie, auth_cookie], function (games) {
+			     console.log("auth cookies: "+user_cookie+", "+auth_cookie);
+			     console.log(games);
+			     if ("error" in games) {
+				 // Simply don't do anything.
+			     } else {
+				 // Save the authentication cookies
+				 setCookie("lyst-user", games["username"]);
+				 setCookie("lyst-auth-cookie", games["cookie"]);
 
-
-	  // If we have a login cookie, let's try to login with that.
-	  var user_cookie = getCookie("lyst-user");
-	  var auth_cookie = getCookie("lyst-auth-cookie");
-	  if (user_cookie === null || auth_cookie === null) {
-	      // Stay the course
-	  } else {
-	      // Try to authenticate
-	      ws_Sess.call("userLoginCookie", [user_cookie, auth_cookie],
-		  function (games) {
-		      console.log("auth cookies: "+user_cookie+", "+auth_cookie);
-		      console.log(games);
-		      if ("error" in games) {
-			  // Simply don't do anything.
-		      } else {
-			  // Save the authentication cookies
-			  setCookie("lyst-user", games["username"]);
-			  setCookie("lyst-auth-cookie", games["cookie"]);
-
-			  // Create a table to hold the different saved games
-			  $("body").html(template_Store.renderTemplate("game_selection", games));
-		      }
-		  });
-	  }
+				 // Create a table to hold the different saved games
+				 $("body").html(template_Store.renderTemplate("game_selection", games));
+			     }
+			 });
+	}
     };
     ws.onclose = function(event) {
 	console.log(event);
-          ws_Sess = null;
-	  connection_Error_Screen.startError();
+        ws_Sess = null;
+	connection_Error_Screen.startError();
     };
 
-   // Build the login form
+    // Build the login form
 
     $("#register-form").submit(function() {
 	if ($("#register-password").val() !== $("#register-password-confirm").val()) {
 	    $("#error-banner").html("Passwords did not match.");
 	} else {
-	var obj = {"username": $("#register-username").val(),
-		   "fullname": $("#register-fullname").val(),
-		   "password": $("#register-password").val(),
-		   "email": $("#register-email").val()};
-	ws_Sess.call("registerUser", [obj],
-	    function (error) {
+	    var obj = {"username": $("#register-username").val(),
+		       "fullname": $("#register-fullname").val(),
+		       "password": $("#register-password").val(),
+		       "email": $("#register-email").val()};
+	    ws_Sess.call("registerUser", [obj], function (error) {
 		if (error === 1) {
 		    $("#error-banner").html("<p>There was an error creating the user.</p>");
 		} else if ("error" in error) {
@@ -924,9 +861,9 @@ window.onload = function() {
 		    $("#register-password-confirm").val("");
 		}
 	    },
-	    function (error) {
-		alert("An error occurred: "+error);
-	    });
+			 function (error) {
+			     alert("An error occurred: "+error);
+			 });
 	}
 	return false;
     });
@@ -934,25 +871,22 @@ window.onload = function() {
     $("#login-form").submit(function() {
 	// Kick off the WebSocket login stuff
 	ws_Sess.call("userLogin", [$("#login-username").val(), $("#login-password").val()],
-	    function (games) {
-		//$("#login-form").dialog("close");
-		//chooseGame(games[0].id);
+		     function (games) {
+			 if ("error" in games) {
+			     $("#error-banner").html("<p>No user found or invalid password</p>");
+			 } else {
+			     // Save the authentication cookies
+			     setCookie("lyst-user", games["username"]);
+			     setCookie("lyst-auth-cookie", games["cookie"]);
 
-		if ("error" in games) {
-		    $("#error-banner").html("<p>No user found or invalid password</p>");
-		} else {
-		    // Save the authentication cookies
-		    setCookie("lyst-user", games["username"]);
-		    setCookie("lyst-auth-cookie", games["cookie"]);
-
-		    // Create a table to hold the different saved games
-		    $("body").html(template_Store.renderTemplate("game_selection", games));
-		}
-	    },
-	    function (error) {
-		alert("An error occurred: "+error);
-	    }
-	);
+			     // Create a table to hold the different saved games
+			     $("body").html(template_Store.renderTemplate("game_selection", games));
+			 }
+		     },
+		     function (error) {
+			 alert("An error occurred: "+error);
+		     }
+		    );
 	return false;
     });
 };

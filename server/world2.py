@@ -25,30 +25,30 @@ def parseGeometryString(s):
                 return (x1,y1,x2-x1,y2-y1)
 
 class DynamicScreen:
-        def __init__(self, elem=None):
-                self.elem = None
-                self.slide = None
-                if elem:
-                        self.fromDOM(elem)
+	def __init__(self, elem=None):
+    	self.elem = None
+		self.slide = None
+		if elem:
+			self.fromDOM(elem)
 
-        def render(self, state):
-                ds = RenderSlide()
-                self.slide.logic.render(ds, state)
-                return ds
+	def render(self, state):
+		ds = RenderSlide()
+		self.slide.logic.render(ds, state)
+		return ds
 
-        def fromDOM(self, elem):
-                self.elem = elem
+	def fromDOM(self, elem):
+		self.elem = elem
 
-                # Create a slide based on the <content> tag.
-                self.slide = Slide()
-                self.slide.fromDOM(elem.getElementsByTagName("content")[0])
+		# Create a slide based on the <content> tag.
+		self.slide = Slide()
+		self.slide.fromDOM(elem.getElementsByTagName("content")[0])
 
-        def __getstate__(self):
-                return {"slide": self.slide}
+	def __getstate__(self):
+		return {"slide": self.slide}
 
-        def __setstate__(self, state):
-            self.__init__()
-            self.slide = state["slide"]
+	def __setstate__(self, state):
+		self.__init__()
+		self.slide = state["slide"]
 
 class DynamicScreenRef:
     def __init__(self, elem=None):
@@ -438,10 +438,6 @@ class RenderNode:
             src = self.elem.getAttribute("src")
             img = {"x":x*100, "y": y*100, "w": w*100, "h": h*100, "src": src}
             dest_slide.images.append(img)
-            """dest_slide.images.append({"x":int(self.elem.getAttribute("x")*100),
-                                      "y":int(self.elem.getAttribute("y")*100),
-                                      "w":int(self.elem.getAttribute("w")*100),
-                                      "h":int(self.elem.getAttribute("h")*100)})"""
         elif self.elem.tagName == "action":
             self.renderActionNode(dest_slide)
             pass

@@ -33,11 +33,6 @@
   <div id='{{id}}' style='z-index:{{i}};position:fixed;width:{{width}}%;height:{{height}}%;margin-left:{{x}}%;margin-top:{{y}}%;cursor:url("cursors/{{cursor}}.cur"), default;' class='hotspot geometry-adjustable' geometry="{{x}},{{y}},{{w}}x{{h}}"></div>
   {{/slide.hotspots}}
 
-<!--<div id="asdffdsa" style="position:fixed;width:100%;height:100%;-moz-transform-style: preserve-3d;-moz-transform-origin: 0px 0px;-moz-transform: matrix3d(0.6,0.1,0,0, 0.1,0.5,0,0, 0,0,1,0, 100,0,0,1);"><div id="main" style="margin:0;padding:0;-moz-transform-origin: 0px 0px 0px;-moz-transform: translate3d(100px,0,1000px);-moz-transform-style: preserve-3d;width: 100%;height: 100%;position: absolute;">
-  <img src="/pictures/noc/IMG_4068.JPG" style="margin:0;padding:0;position:absolute;width:100%;height:100%;cursor:url(&quot;cursors/default.cur&quot;), default;">
-</div>
-</div>-->
-
 </div>
 
 {{#has_frills}}
@@ -61,23 +56,11 @@
   {{#slide.items}}
   <div id="{{id}}" class="item" style="">
     <img src="{{#CDNify}}{{#Resify}}/pictures/{{thumbnail}}{{/Resify}}{{/CDNify}}" style="width:100px;height:100px"/>
-    <!--<img id="{{id}}_fullsize" src="/pictures/{{fullsize}}" style="display:none"/>-->
   </div>
   {{/slide.items}}
 </div>
 </div>
 </div>
 
-<!--<div id="debug-mouse-coords" style="z-index:1000;position:fixed;left:0;bottom:0;background:rgb(1,1,1);background:rgba(0,0,0,0.4);padding:3px;padding-left:6px;padding-right:6px">
-4x5
-</div>-->
-
-<!--<div id="debug-slide-name" style="z-index:1000;position:fixed;right:0;bottom:0;background:rgb(1,1,1);background:rgba(0,0,0,0.4);padding:3px;padding-left:6px;padding-right:6px">{{slide.id}}</div>-->
-
 <img id="mute-button" src="css/images/mute.png" style="position:fixed;right:10px;bottom:10px;width:32px;height:32px;z-index:1000;opacity:0.5;cursor: url('cursors/grab.cur'), default" onclick="muteClicked()"></img>
-
-<!-- NOTE: This is a very crummy way to do the red overlay. Ideally we pick something a little bit more flexible next time. -->
-<!--<div id="lyst_red_overlay" style="z-index:1000;position:absolute;margin-left:0;margin-top:0;width:100%;height:100%;pointer-events:none;opacity:0.2;background-color:red;"/>-->
-
-<!--<button id="screenshot-button" style="z-index:1000;position:fixed;right:300px;bottom:0;background:rgb(0,0,0,1)">Screenshot</button>-->
 {{/has_frills}}

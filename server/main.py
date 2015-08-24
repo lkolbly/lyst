@@ -109,31 +109,13 @@ class RpcServerProtocol:
       self.uid = None
       self.player = None
       self.state = None
-      #WampServerProtocol.connectionLost(self, reason)
-
-   """def onMessage(self, payload, isBinary):
-      # TODO: Call the exportRpc methods.
-      s = payload.decode('utf8')
-      #self.sendMessage(s.encode('utf8'), isBinary=False)
-      pass"""
 
    def sendRpc(self, payload):
-      """if not self.hasConnection:
-         return"""
-      print("Sending RPC...")
-      #return
       asyncio.async(self.websocket.send(json.dumps(payload)))
-
-      """def onJoin(self):
-      #self.registerForRpc(self, "http://example.com/simple/calc#")
-      #self.registerForPubSub("http://example.com/calcevent#evt1")
-      #reactor.callLater(2, self.sendRpc, {"action": "loadSlide", "slide": {"image": 5}})
-      self.hasConnection = True"""
 
    def add(self, x, y):
       return x + y
 
-   @exportRpc
    def saveGame(self):
       g = DBGame(state=self.lyst_state.statePureDict(), uid=self.gid, cur_slide=self.player.cur_slide_id, world_id=self.world_id, save_time=datetime.datetime.now())
       u = DBUser.objects(username=self.username).first()
@@ -148,12 +130,10 @@ class RpcServerProtocol:
       # Tell them we saved the game...
       return json.dumps({"world": self.world_id})
 
-   @exportRpc
    def generateUid(self):
       print("Generating uuid")
-      return "asdf"#str(uuid.uuid4())
+      return str(uuid.uuid4())
 
-   @exportRpc
    def registerUser(self, obj):
       # TODO: Scrub the fields
       pw_hash = obj["password"]
@@ -168,14 +148,11 @@ class RpcServerProtocol:
       u.save()
       return {}
 
-   @exportRpc
    def userLogin(self, username, password):
       print("User %s logged in."%username)
 
       u = DBUser.objects(username=username).first()
       if not u:
-         #u = DBUser(username=username, game_list=[])
-         #u.save()
          print("No such user %s"%username)
          return {"error": "yes"}
       if password != u.pw_hash:
@@ -197,11 +174,8 @@ class RpcServerProtocol:
       for w in worlds:
          w = w.strip(" \r\n")
          games.append({"id": "new:%s"%w, "desc": "A new game in world %s."%w})
-      #games.append({"id": "new:lasa", "desc": "A new game in world LASA."})
       return {"games": games, "cookie": cookie, "username": username}
-      #return self.generateUid()
 
-   @exportRpc
    def userLoginCookie(self, username, cookie):
       u = DBUser.objects(username=username).first()
       if not u:
@@ -221,12 +195,8 @@ class RpcServerProtocol:
       for w in worlds:
          w = w.strip(" \r\n")
          games.append({"id": "new:%s"%w, "desc": "A new game in world %s."%w})
-      #games.append({"id": "new:lasa", "desc": "A new game in world LASA."})
       return {"games": games, "cookie": cookie, "username": username}
-      #return self.generateUid()
-      #return self.userLogin("lane", "foobar")
 
-   @exportRpc
    def chooseGame(self, game_id):
       uid = self.generateUid()
       m = re.match(r"saved:(.*)", game_id)
@@ -235,7 +205,6 @@ class RpcServerProtocol:
       self.game_id = game_id
       return uid
 
-   @exportRpc
    def startGame(self, uid):
       if uid in player_Index and False:
          if uid in player_Index_Locks:
@@ -300,7 +269,6 @@ class RpcServerProtocol:
       self.slideClick(0)
       return 0
 
-   @exportRpc
    def login(self, uid):
       if uid in player_Index and False:
          if uid in player_Index_Locks:
@@ -321,7 +289,6 @@ class RpcServerProtocol:
 
       return open("../worlds/index").read()
 
-   @exportRpc
    def chooseWorld(self, world_id, uid):
       print("They chose world %s"%world_id)
       #self.player.world = world.LystWorld("../worlds/%s/world.xml"%world_id)
@@ -340,7 +307,6 @@ class RpcServerProtocol:
 
       return 0
 
-   @exportRpc
    def slideClick(self, id):
       print("Clicked on: ",id)
       if id != 0:
@@ -358,11 +324,8 @@ class RpcServerProtocol:
                self.sendRpc({"action": "loadDeltaSlide", "delta": delta_slide.json()})
             print("Telling client to apply a delta slide")
             return 0
-      #print self, self.player
-      #print self.player.world, self.player.currentSlide
-      #slide = self.player.world.get_slide(self.player.currentSlide)
+
       slide = self.lyst_state.render(self.player.id)
-      #print slide.json()
       json_data = slide.json()
       print("Check check...")
       self.sendRpc({"action": "loadSlide", "slide": json_data})
@@ -370,13 +333,11 @@ class RpcServerProtocol:
 
       return 0
 
-   @exportRpc
    def renderDynamicSlide(self, dyn_id):
       slide = self.lyst_state.renderDynamicScreen(dyn_id)
       #self.sendRpc(slide.json())
       return slide.json()
 
-   @exportRpc
    def itemDrag(self, obj):
       item_id = obj["id"]
       item_pos = obj["pos"]
@@ -385,120 +346,6 @@ class RpcServerProtocol:
       slide = self.lyst_state.render(self.player.id)
       self.sendRpc({"action": "loadSlide", "slide": slide.json()})
       return 0
-
-"""
-class Picture(resource.Resource):
-   isLeaf = True
-   def render_GET(self, request):
-      path = "../worlds/lasa/%s/%s"%("/".join(request.prepath), "/".join(request.postpath))
-      if "JPG" in path or "jpg" in path:
-         request.setHeader("Content-Type", "image/jpeg")
-      elif "png" in path:
-         request.setHeader("Content-Type", "image/png")
-      elif "cur" in path:
-         request.setHeader("Content-Type", "image/png")
-      #request.setHeader("cache-control", "public")
-      return open(path).read()
-
-class CDNResource(resource.Resource):
-   isLeaf = True
-   def render_GET(self, request):
-      try:
-         cdn_data = open("../cdn_list").read()
-      except:
-         cdn_data = "[]"
-      return "var Game_CDNs = %s;"%cdn_data
-
-class Root(resource.Resource):
-   isLeaf = False
-   def getChild(self, name, request):
-      print("Name: %s"%name)
-      if name == "index.html" or name == "":
-         return self
-      elif name == "cdns":
-         return CDNResource()
-      #elif name == "pictures" or name == "sounds":
-      #   return Picture()
-      elif name == "templates" or name == "pictures" or name == "sounds" or name == "cursors" or name == "css" or name == "js":
-         return self
-      return self
-
-   def resizeImage(self, file_a, file_b, size):
-      if "jpg" in file_a or "JPG" in file_b:
-         from PIL import Image
-         im = Image.open(file_a)
-         im = im.resize((int(size[0]), int(size[1])))
-         im.save(file_b)
-         pass
-      else:
-         open(file_b, "w").write(open(file_a).read())
-
-   def render_GET(self, request):
-      # We need to figure out the disk path to the resource
-      uid = request.getCookie("lyst_user_uid")
-      #print uid, lyst_Player_Worlds
-      if uid in lyst_Player_Worlds:
-         world_name = lyst_Player_Worlds[uid]
-      elif "world" in request.args:
-         world_name = request.args["world"][0]
-      else:
-         world_name = ""
-      if len(request.prepath) > 1:
-         if request.prepath[1] == "pictures" and request.prepath[0] != "full" and request.prepath[0] != "null":
-            # Let's resize it
-            import tempfile
-            path = "../worlds/%s/%s"%(world_name,"/".join(request.prepath[1:]))
-            tf = tempfile.mkstemp(suffix=".%s"%request.prepath[-1].split(".")[-1])
-            os.close(tf[0])
-            foobar = request.prepath[0]
-            if foobar == "null":
-               foobar = "full"
-            self.resizeImage(path, tf[1], foobar.split("x"))
-            path = tf[1]
-         elif request.prepath[1] == "pictures" or request.prepath[1] == "videos":
-            path = "../worlds/%s/%s"%(world_name,"/".join(request.prepath[1:]))
-         elif request.prepath[0] == "sounds":
-            path = "../worlds/%s/sounds/%s"%(world_name,"/".join(request.prepath[1:]))
-         else:
-            path = "../%s"%("/".join(request.prepath))
-      else:
-         path = "../%s"%("/".join(request.prepath))
-      print(path, request.prepath, request.postpath)
-
-      # Now, serve the content
-      try:
-         if "css" in path:
-            request.setHeader("Content-Type", "text/css")
-         elif "js" in path:
-            request.setHeader("Content-Type", "application/javascript")
-         elif "JPG" in path or "jpg" in path:
-            request.setHeader("Content-Type", "image/jpeg")
-         elif "png" in path:
-            request.setHeader("Content-Type", "image/png")
-         elif "cur" in path:
-            request.setHeader("Content-Type", "image/png")
-         elif "manifest" in path:
-            request.setHeader("Content-Type", "text/cache-manifest")
-         elif "webm" in path:
-            request.setHeader("Content-Type", "video/webm")
-         elif "ogg" in path:
-            request.setHeader("Content-Type", "audio/ogg")
-         elif "wav" in path:
-            request.setHeader("Content-Type", "audio/wav")
-         elif ".ico" in path:
-            request.setHeader("Content-Type", "image/x-icon")
-         elif "mp3" in path:
-            request.setHeader("Content-Type", "audio/mpeg")
-         if "html" not in path:
-            request.setHeader("Expires", "Mon, 31 Dec 2035 12:00:00 GMT")
-         return open(path).read()
-      except IOError:
-         print("Got an error serving '%s'"%path)
-         request.setResponseCode(404)
-         return "<html><body>Not found!</body></html>"
-      print(request.prepath)
-      return open("./%s"%("".join(request.prepath))).read()
-"""
 
 @asyncio.coroutine
 def websocketHandler(websocket, path):
@@ -509,32 +356,13 @@ def websocketHandler(websocket, path):
       if x == None:
          break
       # Do what they say.
-      print(x)
       obj = json.loads(x)
-      #res = protocol.__exported_rpc_functions[x["action"]](*tuple(x["args"]))
       res = protocol.callFunction(obj["action"], obj["args"])
-      #res = protocol.add(1, 2)
       print(res)
       if res != None and "callback_id" in obj:
          yield from websocket.send(json.dumps({"_cb_id": obj["callback_id"], "result": res}))
 
 if __name__ == '__main__':
-   #factory = WampServerFactory("ws://localhost:9000", debugWamp=True)
-   #factory.protocol = RpcServerProtocol
-   #listenWS(factory)
-   """factory = WebSocketServerFactory()
-   factory.protocol = RpcServerProtocol
-   reactor.listenTCP(9000, factory)"""
-   #runner = ApplicationRunner(url=u"ws://localhost:8080/ws", realm=u"lyst")
-
    start_server = websockets.serve(websocketHandler, 'localhost', 9000, subprotocols=['binary'])
    asyncio.get_event_loop().run_until_complete(start_server)
    asyncio.get_event_loop().run_forever()
-
-   #webdir = File("../")
-   #web = Site(webdir)
-   #web = Site(Root())
-   #reactor.listenTCP(9001, web)
-
-   #reactor.run()
-   #runner.run(RpcServerProtocol)

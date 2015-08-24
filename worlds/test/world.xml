@@ -106,13 +106,13 @@
 
 	<slide id="ladder-top">
 	  <image src="ladder-top.png"/>
-	  <hotspot action="move:ladder-middle" template="fwd"/>
+	  <hotspot action="move:ladder-middle" template="move-forward"/>
 	  <hotspot action="move:room-west" cursor="down" geometry="xyxy:0.0,0.75,1.0,1.0"/>
 	</slide>
 
 	<slide id="ladder-middle">
 	  <image src="ladder-middle.png"/>
-	  <hotspot action="move:game-won" template="fwd"/>
+	  <hotspot action="move:game-won" template="move-forward"/>
 	  <hotspot action="move:ladder-top" template="left"/>
 	  <hotspot action="move:ladder-top" template="right"/>
 	</slide>
@@ -120,18 +120,15 @@
 	<!-- The last slide in the game.-->
 	<slide id="game-won">
 	  <image src="game-won.png"/>
+
+	  <!-- Let's go to the feature page -->
+	  <hotspot action="move:feature-list" template="move-forward"/>
 	</slide>
 
-	<!-- Let's define a slide which has a state toggle between two states -->
-	<state id="test-state" type="boolean" initial="false"/>
-	<slide id="toggle-test">
-		<cond:if expr="test-state==true">
-			<cond:then><image src="toggle-true.jpg"/></cond:then>
-			<cond:else><image src="toggle-false.jpg"/></cond:else>
-		</cond:if>
+	<slide id="feature-list">
+	  <image src="feature-list.png"/>
 
-		<hotspot action="state:toggle:test-state" geometry="xywh:0.25,0.25,0.5,0.5"/>
-		<hotspot action="link:sound-test" cursor="fwd" geometry="xyxy:0.75,0.0,1.0,1.0"/>
+	  <hotspot action="move:panorama-demo" cursor="fwd" geometry="xywh:0.0625,0.19375,0.2515625,0.16042"/>
 	</slide>
 
 	<!-- Let's test sound playback -->
@@ -142,12 +139,5 @@
 
 		<hotspot action="state:set:sound-capable:true&amp;move:video-test" template="yes-button"/>
 		<hotspot action="state:set:sound-capable:false&amp;move:video-test" template="no-button"/>
-	</slide>
-
-	<!-- Let's test video playback -->
-	<state id="video-capable" type="boolean" initial="false"/>
-	<slide id="video-test">
-		<image src="video.jpg"/>
-		<video src="video.webm"/>
 	</slide>
 </world>
