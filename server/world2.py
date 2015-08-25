@@ -493,11 +493,18 @@ class SlideLogic(LogicNode):
 class Slide:
     def __init__(self):
         self.logic = None # A SlideLogic instance
+        self.slide_type = "normal"
 
     def fromDOM(self, elem):
         self.logic = SlideLogic()
         self.logic.fromDOM(elem)
-        pass
+        if elem.hasAttribute("type"):
+            print("Slide type is: %s"%elem.getAttribute("type"))
+            self.slide_type = elem.getAttribute("type")
+
+    def render(self, dest_slide, state):
+        dest_slide.slide_type = self.slide_type
+        return self.logic.render(dest_slide, state)
 
 # This contains the data to render a delta slide
 class RenderDeltaSlide:
@@ -525,8 +532,12 @@ class RenderSlide:
         self.actions = []
         self.dynamic_screens = []
 
+        # Can be "normal", "panorama", or "3d"
+        self.slide_type = "normal"
+
     def fromAPISlide(self, s):
         print("Converting from API slide %s"%s.src_img)
+        self.slide_type = s.slide_type
         self.hotspots = []
         self.items = []
 
@@ -591,7 +602,7 @@ class RenderSlide:
         dynamic_screen_list = []
         for ds in self.dynamic_screens:
             dynamic_screen_list.append({"content": ds["content"].json(), "map": ds["map"]})
-        return {"id": self.id, "image": {"src": self.src_img}, "hotspots": hs_list, "items": item_list, "images": image_list, "videos": vid_list, "sounds": snd_list, "actions": action_list, "dynamic_screens": dynamic_screen_list}
+        return {"id": self.id, "image": {"src": self.src_img}, "hotspots": hs_list, "items": item_list, "images": image_list, "videos": vid_list, "sounds": snd_list, "actions": action_list, "dynamic_screens": dynamic_screen_list, "slide_type": self.slide_type}
 
 """
 # This contains a single variable of state
@@ -746,10 +757,6 @@ class State:
         pass
 
     def statePureDict(self):
-        #print "State: ", self.state
-        #print "Slides: ", self.slides
-        #open("state-out.save", "w").write("%s"%self.state)
-        #open("slides-out.save", "w").write("%s"%self.slides)
         if False:
             did_work = True
             for k,v in list(self.state.items()):
@@ -765,15 +772,8 @@ class State:
                 print("Finished trying everything, error-free")
 
         return {"content": pickle.dumps(self.state)}
-        #return {"slides": pickle.dumps(self.slides)}
-        return {"content": pickle.dumps(self.state)}
-        #return {"content": pickle.dumps(self.state), "slides": pickle.dumps(self.slides)}
 
     def stateFromDict(self, d):
-        # The dom should be loaded by main.py
-        #dom = xml.dom.minidom.parse("../worlds/lasa/world.xml")
-        #self.fromDOM(dom)
-
         # Reset the state b/c the DOM sets the state, which is unwanted.
         self.state = {}
         self.state = pickle.loads(d["content"])
@@ -791,7 +791,7 @@ class State:
         # Go find the relevant nodes
         cur_slide = self.slides[self.players[p_id].cur_slide_id]
         ds = RenderSlide()
-        cur_slide.logic.render(ds, self.state)
+        cur_slide.render(ds, self.state)
         self.players[p_id].cur_slide = ds
 
         # Add the items

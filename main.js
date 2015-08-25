@@ -515,7 +515,23 @@ var ThreeHandler = function() {
     var self = this;
     this.ortho_camera = new THREE.OrthographicCamera(0.0, 1.0, 1.0, 0.0, -1.0, 1.0);
     this.ortho_scene = new THREE.Scene();
-    this.ortho_scene.add(this.ortho_camera);
+    //this.ortho_scene.add(this.ortho_camera);
+
+    this.persp_camera = new THREE.PerspectiveCamera(75, 640.0/480.0, 0.1, 10.0);
+    this.persp_camera.position.z = -0.01;
+    this.persp_camera.lookAt(new THREE.Vector3(0.0,0.0,0.0));
+    this.persp_scene = new THREE.Scene();
+
+    this.controls = new THREE.OrbitControls(this.persp_camera);
+    this.controls.target.x = 0.0;
+    this.controls.target.y = 0.0;
+    this.controls.target.z = 0.0;
+    this.controls.noZoom = true;
+    this.controls.noPan = true;
+    //this.controls.noRotate = true;
+    this.controls.rotateSpeed = 1;
+    //this.controls.autoRotate = true;
+    //this.controls.damping = 0.2;
 
     this.buildOrthoMesh = function(position, mat) {
 	var x = position.x || 0.0;
@@ -539,10 +555,23 @@ var ThreeHandler = function() {
 	this.ortho_scene.add(mesh);
     };
 
+    // TODO: What's the geometry here?
+    this.addPanorama = function(image) {
+	var geo = new THREE.SphereGeometry(1.0, 60, 40);
+	var tex = THREE.ImageUtils.loadTexture("/1280x854/pictures/"+image.src);
+	var mat = new THREE.MeshBasicMaterial({map: tex, side: THREE.DoubleSide});
+	var mesh = new THREE.Mesh(geo, mat);
+	console.log("Made panorama.");
+	console.log(mesh);
+	console.log(this.persp_camera);
+	this.persp_scene.add(mesh);
+    };
+
     this.videos = [];
     this.video_count = 0;
 
     this.addVideo = function(video) {
+	// TODO: Handle other videos. RESify, CDNify.
 	var video_element = document.createElement('video');
 	video_element.src = "/1280x854/videos/intro.webm";
 	video_element.loop = false;
@@ -564,18 +593,26 @@ var ThreeHandler = function() {
 	this.videos = [];
 
 	self.ortho_scene = new THREE.Scene();
+	this.persp_scene = new THREE.Scene();
     };
 
     this.renderer = new THREE.WebGLRenderer();
+    this.renderer.autoClear = false;
 
     this.attachToElement = function(elem) {
 	this.renderer.setSize(elem.offsetWidth, elem.offsetHeight);
 	elem.appendChild(this.renderer.domElement);
+	this.controls.domElement = this.renderer.domElement;
     };
 
     this.render = function() {
 	requestAnimationFrame(_.bind(self.render, self));
+	this.controls.update();
+	this.renderer.clear();
 	this.renderer.render(this.ortho_scene, this.ortho_camera);
+	this.renderer.clearDepth();
+	this.renderer.render(this.persp_scene, this.persp_camera);
+	//this.persp_camera.rotateOnAxis(new THREE.Vector3(0.0,1.0,0.0), 0.005);
     };
     this.render();
 };
@@ -588,7 +625,12 @@ function renderSlideThree(slide, dest_div) {
 
     three_handler.clear();
     three_handler.attachToElement(container);
-    three_handler.addImage(slide.image);
+
+    if (slide.slide_type === "panorama") {
+	three_handler.addPanorama(slide.image);
+    } else {
+	three_handler.addImage(slide.image);
+    }
 
     _.each(slide.images, function(image) {
 	three_handler.addImage(image);

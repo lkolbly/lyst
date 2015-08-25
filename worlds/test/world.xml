@@ -131,6 +131,10 @@
 	  <hotspot action="move:panorama-demo" cursor="fwd" geometry="xywh:0.0625,0.19375,0.2515625,0.16042"/>
 	</slide>
 
+	<slide id="panorama-demo" type="panorama">
+	  <image src="panorama.png"/>
+	</slide>
+
 	<!-- Let's test sound playback -->
 	<state id="sound-capable" type="boolean" initial="false"/>
 	<slide id="sound-test">
