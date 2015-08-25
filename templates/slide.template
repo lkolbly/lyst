@@ -4,12 +4,7 @@
 {{^has_frills}}
 <div id="main" style="margin:0;padding:0;width:100%;height:100%;position:absolute;-moz-transform-style:preserve-3d;-moz-transform:translateZ(100px)">
 {{/has_frills}}
-  <div id="render" style='margin:0;padding:0;position:absolute;width:100%;height:100%;cursor:url("cursors/default.cur"), default;'></div>
-
-  {{#slide.hotspots}}
-  <div id='{{id}}' style='z-index:{{i}};position:fixed;width:{{width}}%;height:{{height}}%;margin-left:{{x}}%;margin-top:{{y}}%;cursor:url("cursors/{{cursor}}.cur"), default;' class='hotspot geometry-adjustable' geometry="{{x}},{{y}},{{w}}x{{h}}"></div>
-  {{/slide.hotspots}}
-
+  <div id="render" style='margin:0;padding:0;position:absolute;width:100%;height:100%;'></div>
 </div>
 
 {{#has_frills}}

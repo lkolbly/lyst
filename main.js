@@ -518,8 +518,11 @@ var ThreeHandler = function() {
     //this.ortho_scene.add(this.ortho_camera);
 
     this.persp_camera = new THREE.PerspectiveCamera(75, 640.0/480.0, 0.1, 10.0);
+
+    // We have to be slightly off-center to support OrbitControls
     this.persp_camera.position.z = -0.01;
     this.persp_camera.lookAt(new THREE.Vector3(0.0,0.0,0.0));
+
     this.persp_scene = new THREE.Scene();
 
     this.controls = new THREE.OrbitControls(this.persp_camera);
@@ -555,7 +558,6 @@ var ThreeHandler = function() {
 	this.ortho_scene.add(mesh);
     };
 
-    // TODO: What's the geometry here?
     this.addPanorama = function(image) {
 	var geo = new THREE.SphereGeometry(1.0, 60, 40);
 	var tex = THREE.ImageUtils.loadTexture("/1280x854/pictures/"+image.src);
@@ -594,10 +596,41 @@ var ThreeHandler = function() {
 
 	self.ortho_scene = new THREE.Scene();
 	this.persp_scene = new THREE.Scene();
+
+	this.persp_camera.position.x = 0.0;
+	this.persp_camera.position.y = 0.0;
+	this.persp_camera.position.z = -0.01;
     };
 
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.autoClear = false;
+
+    this.mouseToPosition = function(slide_type, mousex, mousey) {
+	//console.log(mousex+" "+mousey);
+	var w = this.renderer.domElement.offsetWidth + 0.0;
+	var h = this.renderer.domElement.offsetHeight + 0.0;
+	if (slide_type === "normal") {
+	    return {x: mousex/w, y: mousey/h};
+	} else if (slide_type === "panorama") {
+	    var mouse = {
+		x: mousex/w * 2.0 - 1.0,
+		y: -mousey/h * 2.0 + 1.0
+	    };
+	    var raycaster = new THREE.Raycaster();
+	    raycaster.setFromCamera(mouse, this.persp_camera);
+	    var intersects = raycaster.intersectObjects(this.persp_scene.children, true);
+	    var pnt = intersects[0].point;
+	    //console.log(intersects[0].point);
+
+	    // Latitude 90 is +Y
+	    // Longitude 0 is -X, 90 is -Z (long 180 is the image seam)
+	    var lon = Math.atan2(pnt.z, pnt.x) * 180.0 / Math.PI;
+	    var lat = Math.asin(pnt.y) * 180.0 / Math.PI;
+
+	    //console.log(lat+" "+lon);
+	    return {x: lon, y: lat};
+	}
+    };
 
     this.attachToElement = function(elem) {
 	this.renderer.setSize(elem.offsetWidth, elem.offsetHeight);
@@ -612,7 +645,6 @@ var ThreeHandler = function() {
 	this.renderer.render(this.ortho_scene, this.ortho_camera);
 	this.renderer.clearDepth();
 	this.renderer.render(this.persp_scene, this.persp_camera);
-	//this.persp_camera.rotateOnAxis(new THREE.Vector3(0.0,1.0,0.0), 0.005);
     };
     this.render();
 };
@@ -663,7 +695,8 @@ function renderSlideTo(slide, dest_div, has_frills) {
 	audioSetMuteButtonImage();
     }
 
-    for (var i=0; i<slide.dynamic_screens.length; i++) {
+    // TODO: Remove dynamic screens entirely
+    /*for (var i=0; i<slide.dynamic_screens.length; i++) {
 	// Create a new div, and apply the CSS transform to it.
 	var newdiv_name = "newdiv_"+i;
 	var w = $(window).width();
@@ -672,10 +705,42 @@ function renderSlideTo(slide, dest_div, has_frills) {
 
 	// Render into the div
 	renderSlideTo(slide.dynamic_screens[i].content, "#"+newdiv_name, false);
-    }
-    $(".hotspot").unbind("click");
+    }*/
+    /*$(".hotspot").unbind("click");
     $(".hotspot").click(function () {
 	ws_Sess.call("slideClick", [this.id], function(){});
+    });*/
+
+    var getHotspotAt = function(mousex, mousey) {
+	var pos = three_handler.mouseToPosition(slide.slide_type, mousex, mousey);
+	pos.x = pos.x * 100.0;
+	pos.y = pos.y * 100.0;
+
+	// Check that position against all of our hotspots
+	var result = null;
+	_.each(slide.hotspots, function(hs) {
+	    if (pos.x > hs.x && pos.y > hs.y && pos.x < hs.x+hs.w && pos.y < hs.y+hs.h) {
+		result = hs;
+	    }
+	});
+	return result;
+    };
+
+    $(dest_div).unbind("click");
+    $(dest_div).unbind("mousemove");
+    $(dest_div).mousemove(function(event) {
+	var hs = getHotspotAt(event.clientX, event.clientY);
+	if (hs === null) {
+	    $(dest_div).css("cursor", "url('cursors/default.cur'), default");
+	} else {
+	    $(dest_div).css("cursor", "url('cursors/"+hs.cursor+".cur'), default");
+	}
+    });
+    $(dest_div).click(function(event) {
+	var hs = getHotspotAt(event.clientX, event.clientY);
+	if (hs !== null) {
+	    ws_Sess.call("slideClick", [hs.id]);
+	}
     });
 }
 

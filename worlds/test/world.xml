@@ -133,6 +133,8 @@
 
 	<slide id="panorama-demo" type="panorama">
 	  <image src="panorama.png"/>
+
+	  <hotspot action="move:feature-list" geometry="xyxy:141.455,-36.1,170.322,10.95"/>
 	</slide>
 
 	<!-- Let's test sound playback -->

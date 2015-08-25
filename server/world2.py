@@ -161,7 +161,7 @@ class Hotspot:
             h = float(match.groups()[3])
             return (x,y,w,h)
 
-        match = re.match(r"xyxy:([\d\.]+),([\d\.]+),([\d\.]+),([\d\.]+)", s)
+        match = re.match(r"xyxy:([-\d\.]+),([-\d\.]+),([-\d\.]+),([-\d\.]+)", s)
         if match:
             x1 = float(match.groups()[0])
             y1 = float(match.groups()[1])
