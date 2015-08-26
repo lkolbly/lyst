@@ -732,7 +732,7 @@ class State:
 
         # Dynamic state
         self.players = {}
-        self.state = {"has_red_overlay": True}
+        self.state = {}
         self.interface = None
 
         # Lyst's internal state
@@ -773,13 +773,10 @@ class State:
 
         return {"content": pickle.dumps(self.state)}
 
-    def stateFromDict(self, d):
+    def stateFromDict(self, d, world_id):
         # Reset the state b/c the DOM sets the state, which is unwanted.
-        self.state = {}
-        self.state = pickle.loads(d["content"])
-        #self.slides = pickle.loads(d["slides"])
-        # TODO: This shouldn't rely on the world being LASA.
-        dom = xml.dom.minidom.parse("../worlds/lasa/world.xml")
+        self.state = pickle.loads(bytes(d["content"]))
+        dom = xml.dom.minidom.parse("../worlds/%s/world.xml"%(world_id))
         for i in dom.getElementsByTagName("dynamic_screen"):
             if i.parentNode.nodeName == "world":
                 self.dynamicScreenFromDOM(i)
@@ -798,29 +795,6 @@ class State:
         ds.items = []
         for i in self.state["__lyst"]["player_items"]:
             ds.items.append(self.state["item:"+i])
-
-        # This is a little bit hackish, but it gets the job done.
-        print("Red overlay: ",self.state["has_red_overlay"])
-        if self.state["has_red_overlay"]:
-            ds.actions.append({"action": "setRedOverlay"})
-        else:
-            ds.actions.append({"action": "unsetRedOverlay"})
-
-        # Another hack, even worse than the last.
-        # TODO: Implement a <background-noise> tag.
-        import world_api
-        if "noc-" == self.players[p_id].cur_slide_id[:4]:
-            snd = world_api.Sound()
-            snd.file = "noc-background.ogg"
-            snd.volume = 0.5
-            snd.looping = True
-            ds.sounds.append(snd)
-        else:
-            snd = world_api.Sound()
-            snd.file = "noc-background.ogg"
-            snd.volume = 0.0
-            snd.looping = True
-            ds.sounds.append(snd)
 
         return ds
 
@@ -1012,10 +986,6 @@ class State:
                     self.players[p_id].items.remove(i)
                     break
 
-    #def getDynamicScreen(self, dyn_id):
-    #    print self.dynamic_screens
-    #    return self.dynamic_screens["notebook"]
-
     def renderDynamicScreen(self, dyn_id):
         dynscr = self.state["__lyst"]["dynamic_screens"][dyn_id]
         s = dynscr.render(self.state)
@@ -1100,8 +1070,6 @@ class State:
 
     def addPlayer(self,p):
         self.players[p.id] = p
-
-#from twisted.internet import reactor
 
 def schedule(delay, fn, *args):
     asyncio.get_event_loop().callLater(delay, fn, *args)

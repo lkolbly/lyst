@@ -1,14 +1,3 @@
-"""from twisted.internet import reactor
-from twisted.web.server import Site, resource
-from twisted.web.static import File
-from twisted.python import log"""
-
-"""from autobahn.wamp import WampServerFactory, \
-                               WampServerProtocol, \
-                               exportRpc
-from autobahn.websocket import listenWS"""
-#from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
-#from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory
 import asyncio
 import websockets
 
@@ -56,23 +45,12 @@ player_Index = {}
 player_Index_Locks = []
 lyst_Player_Worlds = {}
 
-#lyst_States = {}
-
-#dom = xml.dom.minidom.parse("../worlds/lasa/world.xml")
-#lyst_States["lasa"] = world.State()
-#lyst_States["lasa"].fromDOM(dom)
-#lyst_States["lasa"].reset()
-
 def exportRpc(fn):
    return fn
 
 # Now to the network interface
-#class RpcServerProtocol(WampServerProtocol):
 class RpcServerProtocol:
    def __init__(self, websocket):
-      #ApplicationSession.__init__(self, config)
-      #WampServerProtocol.__init__(self)
-      #WebSocketServerProtocol.__init__(self)
       self.hasConnection = True
       self.websocket = websocket
       self.player = None
@@ -170,7 +148,7 @@ class RpcServerProtocol:
       games = []
       for g in u.game_list:
          games.append({"id": "saved:%s"%g["uid"], "desc": "World %s save game at %s"%(g.world_id, g.save_time.strftime("%x %X"))})
-      worlds = open("../worlds/index").readlines()
+      worlds = os.listdir("../worlds")
       for w in worlds:
          w = w.strip(" \r\n")
          games.append({"id": "new:%s"%w, "desc": "A new game in world %s."%w})
@@ -191,7 +169,7 @@ class RpcServerProtocol:
       games = []
       for g in u.game_list:
          games.append({"id": "saved:%s"%g["uid"], "desc": "World %s save game at %s"%(g.world_id, g.save_time.strftime("%x %X"))})
-      worlds = open("../worlds/index").readlines()
+      worlds = os.listdir("../worlds")
       for w in worlds:
          w = w.strip(" \r\n")
          games.append({"id": "new:%s"%w, "desc": "A new game in world %s."%w})
@@ -227,7 +205,7 @@ class RpcServerProtocol:
 
          m = re.match(r"new:(.*)", self.game_id)
          dom = xml.dom.minidom.parse("../worlds/%s/world.xml"%m.groups()[0])
-         self.world_id = "lasa"
+         self.world_id = m.groups()[0]
          self.sendRpc({"action": "setCDNGameName", "name": m.groups()[0]})
          self.lyst_state = world.State()
          self.lyst_state.fromDOM(dom)
@@ -255,7 +233,7 @@ class RpcServerProtocol:
          self.sendRpc({"action": "setCDNGameName", "name": world_id})
          self.lyst_state = world.State()
          self.lyst_state.fromDOM(dom)
-         self.lyst_state.stateFromDict(d)
+         self.lyst_state.stateFromDict(d, world_id)
          self.player.cur_slide_id = g.cur_slide
          self.lyst_state.addPlayer(self.player)
          self.lyst_state.addInterface(self)
@@ -278,7 +256,7 @@ class RpcServerProtocol:
          self.player = player_Index[uid]
          self.uid = uid
          print("Player %s logged in again."%uid)
-         return open("../worlds/index").read()
+         return os.listdir("../worlds")
 
       player_Index_Locks.append(uid)
       player_Index[uid] = world.Player()
@@ -287,12 +265,10 @@ class RpcServerProtocol:
       self.uid = uid
       print("Player %s logged in."%uid)
 
-      return open("../worlds/index").read()
+      return os.listdir("../worlds")
 
    def chooseWorld(self, world_id, uid):
       print("They chose world %s"%world_id)
-      #self.player.world = world.LystWorld("../worlds/%s/world.xml"%world_id)
-      #self.lyst_state = lyst_States[world_id]
 
       # We're doing single player mode, so create a new state.
       dom = xml.dom.minidom.parse("../worlds/lasa/world.xml")
@@ -310,7 +286,6 @@ class RpcServerProtocol:
    def slideClick(self, id):
       print("Clicked on: ",id)
       if id != 0:
-         #self.player.clickOnHotspot(id)
          delta_slide = self.lyst_state.triggerHotspot(self.player.id, id)
 
          # Note that certain hotspots are better handled by applying a delta

@@ -27,7 +27,7 @@
 
   {{#slide.items}}
   <div id="{{id}}" class="item" style="">
-    <img src="{{#CDNify}}{{#Resify}}/pictures/{{thumbnail}}{{/Resify}}{{/CDNify}}" style="width:100px;height:100px"/>
+    <img src="{{#getAsset}}/pictures/{{thumbnail}}{{/getAsset}}" style="width:100px;height:100px"/>
   </div>
   {{/slide.items}}
 </div>

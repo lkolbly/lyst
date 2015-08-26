@@ -53,41 +53,13 @@ function URLToCDN(text, render) {
     return s;
 }
 
-function checkBrowser()
-{
-    console.log("Browser version: "+$.browser.version);
-    if (!$.browser.mozilla) {
-	return false;
-    }
-    var major = $.browser.version.split(".")[0];
-    if (major+0 < 19) {
-	return false;
-    }
-    return true;
-}
-
 // Check to see if the mute cookie is set
-function getCookie(c_name)
-{
-var i,x,y,ARRcookies=document.cookie.split(";");
-for (i=0;i<ARRcookies.length;i++)
-{
-  x=ARRcookies[i].substr(0,ARRcookies[i].indexOf("="));
-  y=ARRcookies[i].substr(ARRcookies[i].indexOf("=")+1);
-  x=x.replace(/^\s+|\s+$/g,"");
-  if (x==c_name)
-    {
-    return unescape(y);
-    }
-  }
-    return null;
+function getCookie(c_name) {
+    return Cookies.get(c_name);
 }
 
 function setCookie(c_name, value, exdays) {
-    var exdate = new Date();
-    exdate.setDate(exdate.getDate() + exdays);
-    var c_value=escape(value) + ((exdays==null) ? "" : "; expires="+exdate.toUTCString());
-    document.cookie = c_name + "=" + c_value;
+    return Cookies.set(c_name, value, {expires: exdays});
 }
 
 // Where we store our audio files
@@ -228,6 +200,22 @@ function setResolution(res) {
     setCookie("lyst-resolution", res, 365);
 }
 
+function getDataPath(asset) {
+    var s = null;
+
+    // Get the CDN
+    for (var i=0; i<Game_CDNs.length; i++) {
+	if (Game_CDNs[i].game === game_CDN_Name &&
+	    Game_CDNs[i].res === getResolution()) {
+	    s = Game_CDNs[i].server + "/" + game_CDN_Name + asset;
+	}
+    }
+    if (s === null) {
+	s = "/worlds/"+game_CDN_Name+asset;
+    }
+    return s;
+}
+
 // Where we keep our templates
 function TemplateStore() {
     this.templates = {};
@@ -239,8 +227,9 @@ function TemplateStore() {
 	});
     };
     this.renderTemplate = function (tid, state) {
-	state["CDNify"] = function() { return URLToCDN; };
-	state["Resify"] = function() { return resify; };
+	state["getAsset"] = function() { return function(url, render) {
+	    return getDataPath(render(url));
+	}};
 	t = this.templates[hex_md5(tid)];
 	//console.log(t);
 	return Mustache.to_html(t, state);
@@ -256,36 +245,28 @@ template_Store.addTemplate("game_selection", "templates/game-selection.template"
 template_Store.addTemplate("fullsizeItem", "templates/item-fullsize.template");
 
 // An image store to keep images in
-// DEPRECATED b/c of the new caching method (HTML5 manifest)
 function ImageStore() {
     this.images = {};
 
-    // Makes sure that the image is in our database.
-    // Note that it may use whatever caching mechanisms it likes.
     this.addImage = function (uri) {
-	//alert(hex_md5(uri));
-	console.log("Loading "+uri);
-	if (hex_md5(uri) in this.images) {
-            //alert("PResent!");
+	if (this.images.hasOwnProperty(uri)) {
             return;
 	}
 	var img = new Image();
-	img.src = "/pictures/"+uri;
-	this.images[hex_md5(uri)] = img;
+	img.src = getDataPath("/pictures/"+uri);
+	this.images[uri] = img;
     };
 
-    // This function gets an image in base64 format, for the localStorage cache
-    this.getImageBase64 = function (uri) {
-	$.get("/pictures/"+uri+"?codec=b64", function(data) {
-	    localStorage.setItem("img:"+hex_md5(uri), data);
-	    var img = new Image();
-	    img.src = "data:image/png,base64,"+data;
-	    this.images[hex_md5(uri)] = img;
-	});
+    this.hasImage = function(uri) {
+	return this.images.hasOwnProperty(uri);
+    };
+
+    this.getImage = function(uri) {
+	return this.images[uri];
     };
 }
 
-var image_Store = new ImageStore();
+var image_Store = null;
 
 var item_Fullsizes = {};
 
@@ -551,8 +532,13 @@ var ThreeHandler = function() {
 
     this.addImage = function(image) {
 	// TODO: Handle SVG data.
-	// TODO: CDNify and RESify.
-	var tex = THREE.ImageUtils.loadTexture("/1280x854/pictures/"+image.src);
+	var tex;
+	if (image_Store.hasImage(image.src)) {
+	    tex = new THREE.Texture(image_Store.getImage(image.src));
+	    tex.needsUpdate = true;
+	} else {
+	    tex = THREE.ImageUtils.loadTexture(getDataPath("/pictures/"+image.src));
+	}
 	var mat = new THREE.MeshBasicMaterial({map: tex});
 	var mesh = this.buildOrthoMesh(image, mat);
 	this.ortho_scene.add(mesh);
@@ -560,12 +546,17 @@ var ThreeHandler = function() {
 
     this.addPanorama = function(image) {
 	var geo = new THREE.SphereGeometry(1.0, 60, 40);
-	var tex = THREE.ImageUtils.loadTexture("/1280x854/pictures/"+image.src);
+	geo.applyMatrix(new THREE.Matrix4().makeScale(-1,1,1));
+	var tex;
+	console.log(image_Store.hasImage(image.src));
+	if (image_Store.hasImage(image.src)) {
+	    tex = new THREE.Texture(image_Store.getImage(image.src));
+	    tex.needsUpdate = true;
+	} else {
+	    tex = THREE.ImageUtils.loadTexture(getDataPath("/pictures/"+image.src));
+	}
 	var mat = new THREE.MeshBasicMaterial({map: tex, side: THREE.DoubleSide});
 	var mesh = new THREE.Mesh(geo, mat);
-	console.log("Made panorama.");
-	console.log(mesh);
-	console.log(this.persp_camera);
 	this.persp_scene.add(mesh);
     };
 
@@ -573,9 +564,8 @@ var ThreeHandler = function() {
     this.video_count = 0;
 
     this.addVideo = function(video) {
-	// TODO: Handle other videos. RESify, CDNify.
 	var video_element = document.createElement('video');
-	video_element.src = "/1280x854/videos/intro.webm";
+	video_element.src = getDataPath("/videos/"+video.src);
 	video_element.loop = false;
 	video_element.mute = audioStore.is_muted;
 	video_element.load();
@@ -784,21 +774,6 @@ function loadSlide(slide) {
 	audioStore.playFromJson(slide.sounds[i]);
     }
 
-    /*$(".video > video").bind("loadedmetadata", function() {
-	var dx = $(window).width() / $(this).get(0).videoWidth;
-	var tx = $(window).width() / 2 - $(this).parent().width() / 2;
-	var dy = $(window).height() / $(this).get(0).videoHeight;
-	var ty = $(window).height() / 2 - $(this).parent().height() / 2 + 8;
-	var trans = "translate("+tx+"px,"+ty+"px) scaleX("+dx+") scaleY("+dy+")";
-	$(this).parent().css("-moz-transform", trans);
-
-	if (audioStore.is_muted) {
-	    muteVideos();
-	} else {
-	    unmuteVideos();
-	}
-    });*/
-
     // Now deal with the "actions"
     for (i=0; i<slide.actions.length; i++) {
 	if (slide.actions[i].action === "triggerHotspot") {
@@ -928,31 +903,7 @@ window.onload = function() {
     }
     is_first_load = false;
 
-    if (!checkBrowser()) {
-	$("body").append("<div id='bad-browser'><p>Lyst only works with Firefox (version 19 and above). You don't have Firefox (or it's an older version).</p></div>'");
-	$("#bad-browser").dialog({
-	    resizeable: false,
-	    width:"700px",
-	    modal: true,
-	    buttons: {
-		"Get Firefox": function() {
-		    window.location = "http://www.mozilla.org/";
-		    $(this).dialog("close");
-		},
-		"I Don't Care": function() {
-		    $(this).dialog("close");
-		}
-	    }
-	});
-    }
-
     Game_CDNs = buildCDNs(Game_CDNs);
-
-    $("body").mousemove(function(event) {
-	var w = event.pageX / $(window).width() * 100.0;
-	var h = event.pageY / $(window).height() * 100.0;
-	$("#debug-mouse-coords").html(w.toFixed(2)+"%x"+h.toFixed(2)+"%");
-    });
 
     var wsuri;
     if (window.location.protocol === "file:") {
@@ -980,6 +931,8 @@ window.onload = function() {
 		loadDynScr(o);
 	    } else if (o.action === "setCDNGameName") {
 		game_CDN_Name = o.name;
+		// Reset the image store.
+		image_Store = new ImageStore();
             }
 	}
     };
@@ -1055,10 +1008,9 @@ window.onload = function() {
 		    $("#register-email").val("");
 		    $("#register-password-confirm").val("");
 		}
-	    },
-			 function (error) {
-			     alert("An error occurred: "+error);
-			 });
+	    }, function (error) {
+		alert("An error occurred: "+error);
+	    });
 	}
 	return false;
     });

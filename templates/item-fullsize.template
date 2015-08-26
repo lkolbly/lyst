@@ -1,3 +1,3 @@
 <div id='item-overlay' style='width:60%;height:60%' title='Item {{item_id}}'>
-     <img src='{{#CDNify}}{{#Resify}}/pictures/{{img_src}}{{/Resify}}{{/CDNify}}' style='width:100%;height:100%'/>
+     <img src='{{#getAsset}}/pictures/{{img_src}}{{/getAsset}}' style='width:100%;height:100%'/>
 </div>
